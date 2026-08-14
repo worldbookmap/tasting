@@ -716,6 +716,8 @@ export default function HomePage() {
   const [archiveViewMode, setArchiveViewMode] = useState<"card" | "list">("card");
   const [detailPanels, setDetailPanels] = useState({ region: false, teaLeaf: false, label: false });
   const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("저장완료");
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [distilleryQuery, setDistilleryQuery] = useState("");
   const [selectedCountryGroup, setSelectedCountryGroup] = useState<(typeof wineCountryGroups)[number]["name"]>("프랑스");
   const [selectedCountry, setSelectedCountry] = useState("프랑스");
@@ -857,19 +859,39 @@ export default function HomePage() {
     setView("archive");
     setArchiveFilter(category);
     setForm(getDefaultForm(category));
+    setToastMessage("저장완료");
     setShowToast(true);
   };
 
-  const deleteNote = async (id: string) => {
+  const confirmDeleteNote = async () => {
+    if (!deleteConfirm) return;
+
     const response = await fetch("/api/notes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ deleteId: id }),
+      body: JSON.stringify({ deleteId: deleteConfirm.id }),
     });
-    if (response.ok) {
-      setNotes((prev) => prev.filter((note) => note.id !== id));
-      setSelectedNote(null);
+
+    if (!response.ok) {
+      if (typeof globalThis !== "undefined" && typeof globalThis.alert === "function") {
+        globalThis.alert("삭제에 실패했습니다.");
+      }
+      setDeleteConfirm(null);
+      return;
     }
+
+    setNotes((prev) => prev.filter((note) => note.id !== deleteConfirm.id));
+    setSelectedNote(null);
+    setArchiveEditMode(false);
+    setArchiveDraft(null);
+    setDeleteConfirm(null);
+    setToastMessage("삭제 완료");
+    setShowToast(true);
+  };
+
+  const deleteNote = (id: string) => {
+    const target = notes.find((note) => note.id === id);
+    setDeleteConfirm({ id, name: target?.name || "이 기록" });
   };
 
   const editNote = (note: Note) => {
@@ -915,6 +937,7 @@ export default function HomePage() {
     setSelectedNote(draft);
     setArchiveEditMode(false);
     setArchiveDraft(null);
+    setToastMessage("저장완료");
     setShowToast(true);
   };
 
@@ -928,11 +951,19 @@ export default function HomePage() {
   const isTea = category === "tea";
   const detailDistillery = selectedNote?.selectedDistillery ?? null;
   const toggleDetailPanel = (key: "region" | "teaLeaf" | "label") => {
-    setDetailPanels((prev) => ({ ...prev, [key]: !prev[key] }));
+    setDetailPanels((prev) => {
+      const next = { region: false, teaLeaf: false, label: false };
+      next[key] = !prev[key];
+      return next;
+    });
+  };
+
+  const closeDetailPanels = () => {
+    setDetailPanels({ region: false, teaLeaf: false, label: false });
   };
 
   useEffect(() => {
-    setDetailPanels({ region: false, teaLeaf: false, label: false });
+    closeDetailPanels();
   }, [selectedNote?.id]);
 
   useEffect(() => {
@@ -982,7 +1013,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="dark-panel rounded-[32px] p-5 text-white">
+              <div className="dark-panel rounded-[28px] p-4 text-white sm:p-5">
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="rounded-2xl bg-white/8 p-4">
                     <div className="mb-2 text-3xl">🥃</div>
@@ -1011,11 +1042,11 @@ export default function HomePage() {
       )}
 
       {view !== "landing" && (
-        <div className="min-h-screen px-2 py-4 sm:px-3 md:px-8 md:py-6">
-          <div className="mx-auto max-w-[1280px] overflow-hidden rounded-[32px] border border-white/30 shadow-[0_30px_60px_rgba(46,31,25,0.16)]" style={{ background: "transparent", border: "none", boxShadow: "none" }}>
-            <div className="p-3 sm:p-4 md:p-6">
-              <header className="rounded-[26px] border border-white/25 px-3 py-3 text-[#281d18] shadow-[0_18px_36px_rgba(68,50,42,0.08),inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-xl sm:px-4 md:px-6" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.24), rgba(245,236,230,0.16))" }}>
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="min-h-screen px-1 py-2.5 sm:px-1.5 md:px-6 md:py-5">
+          <div className="mx-auto max-w-[1280px] overflow-hidden rounded-[28px] border border-white/30 shadow-[0_30px_60px_rgba(46,31,25,0.16)]" style={{ background: "transparent", border: "none", boxShadow: "none" }}>
+            <div className="p-1.5 sm:p-2 md:p-5">
+              <header className="rounded-[22px] border border-white/25 px-2 py-2 text-[#281d18] shadow-[0_18px_36px_rgba(68,50,42,0.08),inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-xl sm:px-2.5 md:px-5" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.24), rgba(245,236,230,0.16))" }}>
+                <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between md:gap-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e5d5c8] bg-[linear-gradient(180deg,#f9f3ef,#e9d7c8)] text-[#4d382e] shadow-[0_6px_14px_rgba(101,77,64,0.12)]"><FontAwesomeIcon icon={faGlassCheers} className="text-sm" /></div>
                     <div className="min-w-0">
@@ -1023,14 +1054,14 @@ export default function HomePage() {
                       <div className="brand-script mt-1 text-[2.1rem] leading-[0.9] tracking-[0.04em] text-[#2d201d] md:text-[2.5rem]">A Slow, Lovely Pour</div>
                     </div>
                   </div>
-                  <nav className="flex w-full flex-nowrap items-center justify-start gap-1.5 overflow-x-auto scrollbar-none md:w-auto md:justify-end md:gap-2">
+                  <nav className="flex w-full flex-nowrap items-center justify-start gap-1 overflow-x-auto scrollbar-none md:w-auto md:justify-end md:gap-1.5">
                     {[
                       { key: "tasting", label: "Tasting Note", icon: faBookOpen },
                       { key: "archive", label: "Archive", icon: faSearch },
                       { key: "calendar", label: "Calendar", icon: faCalendarAlt },
                     ].map((item) => (
-                      <button key={item.key} type="button" onClick={() => setView(item.key as "tasting" | "archive" | "calendar")} className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-2 text-[10.5px] font-medium transition-all duration-200 sm:px-3.5 sm:text-[11px] md:px-4 md:text-sm ${view === item.key ? "border-[#3b2a25] bg-[#2a201d] text-[#f4efe9] shadow-[0_8px_18px_rgba(42,32,29,0.2)]" : "border-[#e6d8cb] bg-white/45 text-[#2a201d] hover:bg-white/60"}`}>
-                        <FontAwesomeIcon icon={item.icon} className="shrink-0 text-[10px] md:text-[12px]" />
+                      <button key={item.key} type="button" onClick={() => setView(item.key as "tasting" | "archive" | "calendar")} className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.25 py-1.75 text-[9.5px] font-medium transition-all duration-200 sm:px-3 sm:text-[10.5px] md:px-4 md:text-sm ${view === item.key ? "border-[#3b2a25] bg-[#2a201d] text-[#f4efe9] shadow-[0_8px_18px_rgba(42,32,29,0.2)]" : "border-[#e6d8cb] bg-white/45 text-[#2a201d] hover:bg-white/60"}`}>
+                        <FontAwesomeIcon icon={item.icon} className="shrink-0 text-[9px] md:text-[12px]" />
                         <span className="truncate">{item.label}</span>
                       </button>
                     ))}
@@ -1040,8 +1071,8 @@ export default function HomePage() {
 
               <div className="mt-6 space-y-6">
                 {view === "tasting" && (
-                  <section className="rounded-[28px] border border-white/20 bg-white/20 p-3 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm sm:p-4 md:p-6">
-                    <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <section className="rounded-[24px] border border-white/20 bg-white/20 p-2.5 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm sm:p-3 md:p-6">
+                    <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:gap-4 md:flex-row md:items-center md:justify-between">
                       <div>
                         <div className="text-[10px] tracking-[0.3em] text-[#6c594f]">CATEGORY</div>
                         <h2 className="mt-1 text-3xl font-semibold text-[#221d1b]">테이스팅 노트</h2>
@@ -1283,7 +1314,7 @@ export default function HomePage() {
                 )}
 
                 {view === "archive" && (
-                  <section className="archive-doc-shell rounded-[28px] border border-white/20 bg-white/30 p-3 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm sm:p-4 md:p-6">
+                  <section className="archive-doc-shell rounded-[24px] border border-white/20 bg-white/30 p-2.5 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm sm:p-3 md:p-6">
                     <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:gap-4 md:flex-row md:items-center md:justify-between">
                       <div>
                         <div className="document-section-label">ARCHIVE</div>
@@ -1362,8 +1393,8 @@ export default function HomePage() {
                 )}
 
                 {view === "calendar" && (
-                  <section className="rounded-[28px] border border-white/20 bg-white/20 p-3 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm sm:p-4 md:p-6">
-                    <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <section className="rounded-[24px] border border-white/20 bg-white/20 p-2.5 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm sm:p-3 md:p-6">
+                    <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:gap-4 md:flex-row md:items-center md:justify-between">
                       <div>
                         <div className="text-[10px] tracking-[0.3em] text-[#6c594f]">CALENDAR</div>
                         <h2 className="mt-1 text-3xl font-semibold text-[#221d1b]">마신 기록 달력</h2>
@@ -1436,6 +1467,47 @@ export default function HomePage() {
           setArchiveDraft(null);
         }}>
           <div className="max-h-[90vh] w-full max-w-5xl overflow-auto rounded-[30px] border border-[#ebddd0] bg-[#fffaf6] p-5 shadow-[0_26px_60px_rgba(72,52,42,0.16)]" onClick={(e) => e.stopPropagation()}>
+            {Object.values(detailPanels).some(Boolean) && (
+              <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[#1a130f]/55 p-4 backdrop-blur-[2px]" onClick={closeDetailPanels}>
+                <div className="w-full max-w-xl overflow-hidden rounded-[28px] border border-[#ebddd0] bg-[#fffaf6] shadow-[0_26px_60px_rgba(72,52,42,0.16)]" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-between gap-3 border-b border-[#f0e3d8] bg-[linear-gradient(180deg,#fffaf6,#f5ece5)] px-4 py-3">
+                    <div className="text-[9px] tracking-[0.22em] text-[#7e665d] uppercase">
+                      {detailPanels.label ? "Label" : detailPanels.region ? "Region" : "Tea Leaf"}
+                    </div>
+                    <button type="button" onClick={closeDetailPanels} className="document-button document-button--ghost h-8 min-h-0 px-2.5 py-1 text-[10px]">닫기</button>
+                  </div>
+                  <div className="p-4">
+                    {detailPanels.label && (selectedNote.labelPhoto || selectedNote.labelPhotoUrl) && (
+                      <div className="relative h-[420px] overflow-hidden rounded-[22px] border border-[#e6d7c6] bg-white/60">
+                        <Image src={selectedNote.labelPhoto || selectedNote.labelPhotoUrl} alt="label" fill unoptimized className="object-contain p-4" />
+                      </div>
+                    )}
+                    {detailPanels.teaLeaf && (selectedNote.teaLeafPhoto || selectedNote.teaLeafUrl) && (
+                      <div className="relative h-[420px] overflow-hidden rounded-[22px] border border-[#e6d7c6] bg-white/60">
+                        <Image src={selectedNote.teaLeafPhoto || selectedNote.teaLeafUrl} alt="tea leaf" fill unoptimized className="object-contain p-4" />
+                      </div>
+                    )}
+                    {detailPanels.region && selectedNote.regionName && (() => {
+                      const archiveMap = getArchiveRegionMapProps(selectedNote);
+                      if (!archiveMap) return null;
+                      return (
+                        <div className="h-[420px] overflow-hidden rounded-[22px] border border-[#e6d7c6] bg-white/60">
+                          <RegionBlockMap
+                            items={archiveMap.items}
+                            activeId={selectedNote.regionName}
+                            showMap
+                            hideUnselected
+                            mapShape={archiveMap.mapShape}
+                            geoJson={archiveMap.geoJson}
+                            onSelect={() => undefined}
+                          />
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+            )}
             {archiveEditMode && archiveDraft ? (
               <div className="document-section-group mx-auto max-w-5xl">
                 <div className="document-modal-shell p-3">
@@ -1723,84 +1795,59 @@ export default function HomePage() {
               </div>
             ) : (
               <>
-                <div className="document-modal-shell mb-5 p-3">
-                  <div className="document-modal-header">
-                    <div>
-                      <div className="text-[10px] tracking-[0.25em] text-[#7e665d]">DETAIL</div>
-                      <h3 className="mt-1 text-2xl font-semibold text-[#2b201d]">{selectedNote.name || "테이스팅 기록"}</h3>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => startArchiveEdit(selectedNote)} className="document-button document-button--secondary"><FontAwesomeIcon icon={faPen} className="mr-1" />수정</button>
-                      <button type="button" onClick={() => deleteNote(selectedNote.id)} className="document-button document-button--ghost text-[#612f28] border-[#e9c9c2] bg-[#f9ece8]"><FontAwesomeIcon icon={faTrash} className="mr-1" />삭제</button>
-                      <button type="button" onClick={() => setSelectedNote(null)} className="document-button document-button--ghost">닫기</button>
+                <div className="document-modal-shell mb-4 p-2.5 sm:p-3">
+                  <div className="document-modal-header px-2.5 py-2.5 sm:px-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[9px] tracking-[0.24em] text-[#7e665d]">DETAIL</div>
+                      <h3 className="mt-1 truncate text-[1.35rem] font-semibold leading-tight text-[#2b201d] sm:text-[1.7rem]">{selectedNote.name || "테이스팅 기록"}</h3>
                     </div>
                   </div>
                 </div>
                 <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
                   <div className="space-y-4">
-                    <div className="relative h-72 w-full overflow-hidden rounded-[22px]">
-                      <Image src={selectedNote.photo || selectedNote.photoUrl} alt={selectedNote.name} fill unoptimized className="object-cover" />
+                    <div className="relative h-72 w-full overflow-hidden rounded-[22px] border border-[#eadfd4] bg-[linear-gradient(180deg,#f7efe9,#f2e7df)]">
+                      {(selectedNote.photo || selectedNote.photoUrl) ? (
+                        <Image src={selectedNote.photo || selectedNote.photoUrl} alt={selectedNote.name} fill unoptimized className="object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[#7b655d]">
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/70 shadow-[0_8px_18px_rgba(89,64,51,0.08)]">
+                              <FontAwesomeIcon icon={faGlassCheers} className="text-2xl" />
+                            </div>
+                            <span className="text-[10px] tracking-[0.2em] uppercase text-[#765f55]">No Photo</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    {(selectedNote.category === "whisky" || selectedNote.category === "wine") && (selectedNote.labelPhoto || selectedNote.labelPhotoUrl) && (
-                      <div className="mb-3 flex flex-wrap gap-2">
-                        <button type="button" onClick={() => toggleDetailPanel("label")} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-[10px] font-medium text-[#472f2a]">
-                          {detailPanels.label ? "라벨 숨기기" : "라벨 보기"}
-                        </button>
+                    {(selectedNote.category === "whisky" || selectedNote.category === "wine" || selectedNote.category === "tea") && (
+                      <div className="mb-3 flex flex-row flex-wrap items-center gap-2">
+                        {(selectedNote.category === "whisky" || selectedNote.category === "wine") && (selectedNote.labelPhoto || selectedNote.labelPhotoUrl) && (
+                          <button type="button" onClick={() => toggleDetailPanel("label")} className="inline-flex items-center justify-center rounded-full border border-[#e8d9ca] bg-[linear-gradient(180deg,#fffaf6,#f4e7dd)] px-3 py-1.5 text-[10px] font-medium text-[#4d352f] shadow-[0_6px_14px_rgba(111,87,72,0.05)]">
+                            {detailPanels.label ? "라벨 숨기기" : "라벨 보기"}
+                          </button>
+                        )}
+                        {selectedNote.category === "wine" && selectedNote.regionName && (
+                          <button type="button" onClick={() => toggleDetailPanel("region")} className="inline-flex items-center justify-center rounded-full border border-[#e8d9ca] bg-[linear-gradient(180deg,#fffaf6,#f4e7dd)] px-3 py-1.5 text-[10px] font-medium text-[#4d352f] shadow-[0_6px_14px_rgba(111,87,72,0.05)]">
+                            {detailPanels.region ? "산지 숨기기" : "산지 보기"}
+                          </button>
+                        )}
+                        {selectedNote.category === "tea" && selectedNote.regionName && (
+                          <button type="button" onClick={() => toggleDetailPanel("region")} className="inline-flex items-center justify-center rounded-full border border-[#e8d9ca] bg-[linear-gradient(180deg,#fffaf6,#f4e7dd)] px-3 py-1.5 text-[10px] font-medium text-[#4d352f] shadow-[0_6px_14px_rgba(111,87,72,0.05)]">
+                            {detailPanels.region ? "산지 숨기기" : "산지 보기"}
+                          </button>
+                        )}
+                        {selectedNote.category === "tea" && (selectedNote.teaLeafPhoto || selectedNote.teaLeafUrl) && (
+                          <button type="button" onClick={() => toggleDetailPanel("teaLeaf")} className="inline-flex items-center justify-center rounded-full border border-[#e8d9ca] bg-white/60 px-3 py-1.5 text-[10px] font-medium text-[#4d352f] shadow-[0_4px_10px_rgba(111,87,72,0.04)]">
+                            {detailPanels.teaLeaf ? "차엽 숨기기" : "차엽 보기"}
+                          </button>
+                        )}
                         {selectedNote.category === "whisky" && detailDistillery && (
-                          <button type="button" onClick={() => setSelectedNote((prev) => prev ? { ...prev, regionName: prev.regionName || detailDistillery.name_ko } : prev)} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-[10px] font-medium text-[#472f2a]">
+                          <button type="button" onClick={() => setSelectedNote((prev) => prev ? { ...prev, regionName: prev.regionName || detailDistillery.name_ko } : prev)} className="inline-flex items-center justify-center rounded-full border border-[#e8d9ca] bg-white/60 px-3 py-1.5 text-[10px] font-medium text-[#4d352f] shadow-[0_4px_10px_rgba(111,87,72,0.04)]">
                             증류소
                           </button>
                         )}
                       </div>
                     )}
-                    {selectedNote.category === "wine" && selectedNote.regionName && (
-                      <div className="mb-3 flex flex-wrap gap-2">
-                        <button type="button" onClick={() => toggleDetailPanel("region")} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-[10px] font-medium text-[#472f2a]">
-                          {detailPanels.region ? "산지 숨기기" : "산지 보기"}
-                        </button>
-                      </div>
-                    )}
-                    {selectedNote.category === "tea" && (
-                      <div className="mb-3 flex flex-wrap gap-2">
-                        {selectedNote.regionName && (
-                          <button type="button" onClick={() => toggleDetailPanel("region")} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-[10px] font-medium text-[#472f2a]">
-                            {detailPanels.region ? "산지 숨기기" : "산지 보기"}
-                          </button>
-                        )}
-                        {(selectedNote.teaLeafPhoto || selectedNote.teaLeafUrl) && (
-                          <button type="button" onClick={() => toggleDetailPanel("teaLeaf")} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-[10px] font-medium text-[#472f2a]">
-                            {detailPanels.teaLeaf ? "차엽 숨기기" : "차엽 보기"}
-                          </button>
-                        )}
-                      </div>
-                    )}
-                    {detailPanels.label && (selectedNote.labelPhoto || selectedNote.labelPhotoUrl) && (
-                      <div className="relative mb-3 h-56 overflow-hidden rounded-[22px] border border-[#e6d7c6] bg-white/60">
-                        <Image src={selectedNote.labelPhoto || selectedNote.labelPhotoUrl} alt="label" fill unoptimized className="object-contain p-4" />
-                      </div>
-                    )}
-                    {detailPanels.teaLeaf && (selectedNote.teaLeafPhoto || selectedNote.teaLeafUrl) && (
-                      <div className="relative mb-3 h-56 overflow-hidden rounded-[22px] border border-[#e6d7c6] bg-white/60">
-                        <Image src={selectedNote.teaLeafPhoto || selectedNote.teaLeafUrl} alt="tea leaf" fill unoptimized className="object-contain p-4" />
-                      </div>
-                    )}
-                    {detailPanels.region && selectedNote.regionName && (() => {
-                      const archiveMap = getArchiveRegionMapProps(selectedNote);
-                      if (!archiveMap) return null;
-                      return (
-                        <div className="mb-3 h-52 overflow-hidden rounded-[22px] border border-[#e6d7c6] bg-white/60">
-                          <RegionBlockMap
-                            items={archiveMap.items}
-                            activeId={selectedNote.regionName}
-                            showMap
-                            hideUnselected
-                            mapShape={archiveMap.mapShape}
-                            geoJson={archiveMap.geoJson}
-                            onSelect={() => undefined}
-                          />
-                        </div>
-                      );
-                    })()}
                   </div>
                   <div className="user-serif space-y-4 text-sm text-[#3c2d26]">
                     <div className="grid grid-cols-2 gap-3">
@@ -1858,15 +1905,42 @@ export default function HomePage() {
                     )}
                   </div>
                 </div>
+                <div className="mt-5 border-t border-[#f0e3d8] bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(248,239,233,0.92))] px-3 pb-3 pt-4">
+                  <div className="flex items-center justify-end gap-2 rounded-full border border-[#ecdccc] bg-white/40 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+                    <button type="button" onClick={() => startArchiveEdit(selectedNote)} className="document-button document-button--secondary min-h-0 px-3 py-1.75 text-[10px] sm:px-3.5 sm:text-[11px]"><FontAwesomeIcon icon={faPen} className="mr-1 text-[10px] sm:text-[11px]" />수정</button>
+                    <button type="button" onClick={() => deleteNote(selectedNote.id)} className="document-button document-button--ghost min-h-0 border-[#e9c9c2] bg-[#f9ece8] px-3 py-1.75 text-[10px] text-[#612f28] sm:px-3.5 sm:text-[11px]"><FontAwesomeIcon icon={faTrash} className="mr-1 text-[10px] sm:text-[11px]" />삭제</button>
+                    <button type="button" onClick={() => setSelectedNote(null)} className="document-button document-button--ghost min-h-0 px-3 py-1.75 text-[10px] sm:px-3.5 sm:text-[11px]">닫기</button>
+                  </div>
+                </div>
               </>
             )}
           </div>
         </div>
       )}
 
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#1a130f]/60 p-4 backdrop-blur-[2px]" onClick={() => setDeleteConfirm(null)}>
+          <div className="w-full max-w-md overflow-hidden rounded-[28px] border border-[#efdacc] bg-[linear-gradient(180deg,#fffaf7,#f7eee8)] shadow-[0_30px_60px_rgba(39,28,22,0.18)]" onClick={(e) => e.stopPropagation()}>
+            <div className="border-b border-[#f1e3d8] px-5 py-4">
+              <div className="text-[9px] tracking-[0.24em] text-[#7a655e] uppercase">Delete</div>
+              <div className="mt-2 text-xl font-semibold text-[#2c211d]">기록을 삭제할까요?</div>
+            </div>
+            <div className="px-5 py-4 text-sm leading-7 text-[#5b473f]">
+              <span className="font-semibold text-[#2c211d]">{deleteConfirm.name}</span> 항목을 삭제합니다.
+              <br />
+              삭제 후에는 복구할 수 없어요.
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-[#f1e3d8] bg-[linear-gradient(180deg,rgba(255,255,255,0.2),rgba(248,239,233,0.9))] px-4 py-3">
+              <button type="button" onClick={() => setDeleteConfirm(null)} className="document-button document-button--ghost min-h-0 px-3 py-1.75 text-[10px]">취소</button>
+              <button type="button" onClick={confirmDeleteNote} className="document-button document-button--primary min-h-0 px-3 py-1.75 text-[10px]">삭제</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showToast && (
-        <div className="fixed bottom-6 right-6 z-[60] rounded-full bg-[#1f1915] px-5 py-3 text-sm font-medium text-[#f8f4f0] shadow-2xl shadow-[#2c221e]/20">
-          <div className="flex items-center gap-2"><FontAwesomeIcon icon={faCheck} className="text-[#c8e3bb]" />저장완료</div>
+        <div className="fixed bottom-6 right-6 z-[60] rounded-full border border-[#e9d9cc] bg-[linear-gradient(180deg,#231c1a,#140f0d)] px-5 py-3 text-sm font-medium text-[#f8f4f0] shadow-[0_20px_35px_rgba(26,19,15,0.22)]">
+          <div className="flex items-center gap-2"><FontAwesomeIcon icon={faCheck} className="text-[#c8e3bb]" />{toastMessage}</div>
         </div>
       )}
     </main>
