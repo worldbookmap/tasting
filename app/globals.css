@@ -265,7 +265,6 @@ textarea {
   min-height: 68px;
   width: 100%;
   max-width: 100%;
-  overflow: hidden;
   padding: 0.5rem 0.8rem 0.5rem 0.85rem;
   border: 1px solid rgba(219, 189, 166, 0.92);
   border-radius: 18px;
@@ -315,6 +314,28 @@ textarea {
   transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease, transform 180ms ease;
 }
 
+.form-label-input {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+input[type="date"].form-label-input {
+  padding-right: 2.5rem;
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem 1rem;
+}
+
+input[type="date"].form-label-input::-webkit-calendar-picker-indicator {
+  margin: 0;
+  opacity: 0.8;
+  cursor: pointer;
+}
+
 .form-label-input:hover,
 .form-label-textarea:hover {
   border-color: rgba(205, 163, 128, 0.96);
@@ -340,7 +361,6 @@ textarea {
     gap: 0.45rem;
     min-height: 62px;
     max-width: 100%;
-    overflow: hidden;
     padding: 0.7rem 0.7rem 0.7rem 0.8rem;
   }
 
@@ -356,12 +376,6 @@ textarea {
     max-width: 100%;
     padding: 0.6rem 0.7rem;
     font-size: 13px;
-  }
-
-  input[type="date"].form-label-input {
-    width: 100%;
-    max-width: 100%;
-    overflow: hidden;
   }
 
   .archive-row {

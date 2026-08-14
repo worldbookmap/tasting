@@ -1071,7 +1071,7 @@ export default function HomePage() {
 
               <div className="mt-6 space-y-6">
                 {view === "tasting" && (
-                  <section className="overflow-hidden rounded-[24px] border border-white/20 bg-white/35 p-2.5 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm sm:p-3 md:p-6">
+                  <section className="rounded-[24px] border border-white/20 bg-white/35 p-2.5 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm sm:p-3 md:p-6">
                     <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:gap-4 md:flex-row md:items-center md:justify-between">
                       <div>
                         <div className="text-[10px] tracking-[0.3em] text-[#6c594f]">CATEGORY</div>
