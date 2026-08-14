@@ -119,20 +119,22 @@ const getRegionLabelPalette = (label: string) => {
   return palettes[Math.abs(hash) % palettes.length];
 };
 
-const createBlockLabelIcon = (label: string, isActive = false) => {
+const createBlockLabelIcon = (label: string, isActive = false, isDimmed = false) => {
   if (!leafletDivIconFactory || typeof window === "undefined") return undefined;
   const palette = getRegionLabelPalette(label);
-  const background = isActive ? "rgba(255,250,247,0.98)" : palette.bg;
-  const border = isActive ? "#6b342a" : palette.border;
+  const background = isActive ? "rgba(255,247,242,0.98)" : isDimmed ? "rgba(248,242,237,0.85)" : palette.bg;
+  const border = isActive ? "rgba(93,57,44,0.9)" : isDimmed ? "rgba(196,170,155,0.8)" : palette.border;
   const shadow = isActive
-    ? "0 0 0 3px rgba(214,157,119,0.18), 0 8px 16px rgba(26,18,15,0.18)"
-    : "0 2px 8px rgba(26,18,15,0.08)";
+    ? "0 0 0 3px rgba(199,145,108,0.17), 0 10px 18px rgba(48,31,23,0.18)"
+    : "0 2px 8px rgba(26,18,15,0.07)";
+  const textColor = isActive ? "#2d201d" : isDimmed ? "rgba(96,76,68,0.72)" : "#473b36";
+  const opacity = isDimmed ? 0.7 : 1;
 
   const icon = leafletDivIconFactory({
     className: "region-label-icon",
-    html: `<div style="display:flex;align-items:center;justify-content:center;min-width:60px;padding:3px 8px;border-radius:999px;background:${background};border:1.5px solid ${border};box-shadow:${shadow};color:#3c2d26;font-size:9px;font-weight:700;letter-spacing:-0.02em;line-height:1.2;transform:${isActive ? "translateY(-4px) scale(1.1)" : "translateY(0) scale(1)"};transition:transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;filter:${isActive ? "drop-shadow(0 4px 6px rgba(90,42,34,0.18))" : "none"};">${label}</div>`,
-    iconSize: [78, 24],
-    iconAnchor: [39, 12],
+    html: `<div style="display:flex;align-items:center;justify-content:center;min-width:62px;padding:4px 10px;border-radius:999px;background:${background};border:1.5px solid ${border};box-shadow:${shadow};color:${textColor};font-size:9px;font-weight:700;letter-spacing:0.02em;line-height:1.1;transform:${isActive ? "translateY(-5px) scale(1.08)" : "translateY(0) scale(1)"};transition:transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;filter:${isActive ? "drop-shadow(0 5px 8px rgba(90,42,34,0.12))" : "none"};opacity:${opacity};">${label}</div>`,
+    iconSize: [82, 26],
+    iconAnchor: [41, 13],
   });
   return icon as unknown as ReturnType<typeof import("leaflet").divIcon> | undefined;
 };
@@ -239,6 +241,7 @@ function RegionBlockMap({
   showMap = false,
   mapShape,
   geoJson,
+  hideUnselected = false,
 }: {
   items: RegionBlock[];
   activeId?: string;
@@ -246,12 +249,16 @@ function RegionBlockMap({
   showMap?: boolean;
   mapShape?: string;
   geoJson?: GeoJsonObject;
+  hideUnselected?: boolean;
 }) {
   if (!items.length) return null;
 
-  const avgLat = items.reduce((sum, item) => sum + ((item.center?.[0] ?? ((item.y + item.h / 2) / 100) * 20)), 0) / items.length;
-  const avgLng = items.reduce((sum, item) => sum + ((item.center?.[1] ?? ((item.x + item.w / 2) / 100) * 28)), 0) / items.length;
+  const visibleItems = hideUnselected && activeId ? items.filter((item) => item.name === activeId) : items;
+  const avgLat = visibleItems.reduce((sum, item) => sum + ((item.center?.[0] ?? ((item.y + item.h / 2) / 100) * 20)), 0) / visibleItems.length;
+  const avgLng = visibleItems.reduce((sum, item) => sum + ((item.center?.[1] ?? ((item.x + item.w / 2) / 100) * 28)), 0) / visibleItems.length;
   const center: [number, number] = [avgLat, avgLng];
+
+  const shouldDim = !!activeId && !hideUnselected;
 
   return (
     <div className="h-64 w-full overflow-hidden rounded-2xl border border-[#d5c2a5]">
@@ -277,8 +284,9 @@ function RegionBlockMap({
             <path d={mapShape} fill="rgba(91,70,58,0.06)" stroke="rgba(74,58,49,0.18)" strokeWidth="0.6" />
           </svg>
         )}
-        {items.map((item) => {
+        {visibleItems.map((item) => {
           const isActive = activeId === item.name;
+          const isDimmed = shouldDim && !isActive;
           const latCenter = item.center?.[0] ?? ((item.y + item.h / 2) / 100) * 20;
           const lngCenter = item.center?.[1] ?? ((item.x + item.w / 2) / 100) * 28;
           const latSpan = (item.h / 100) * 6;
@@ -294,18 +302,18 @@ function RegionBlockMap({
                 bounds={bounds}
                 eventHandlers={{ click: () => onSelect(item.name) }}
                 pathOptions={{
-                  color: isActive ? "#4e2d2d" : "#b98f6a",
-                  weight: isActive ? 3.8 : 2.1,
-                  opacity: 1,
-                  fillColor: isActive ? "#c88762" : "#f3e7d8",
-                  fillOpacity: isActive ? 1 : 0.82,
+                  color: isActive ? "#4e2d2d" : isDimmed ? "#d7b9a1" : "#c89d7a",
+                  weight: isActive ? 3.8 : isDimmed ? 1.2 : 1.7,
+                  opacity: isActive ? 1 : isDimmed ? 0.45 : 0.72,
+                  fillColor: isActive ? "#c88762" : isDimmed ? "#f6eadf" : "#f3e7d8",
+                  fillOpacity: isActive ? 1 : isDimmed ? 0.24 : 0.42,
                   dashArray: isActive ? undefined : "0",
                   className: isActive ? "region-selected" : undefined,
                 }}
               />
               <LeafletMarker
                 position={[latCenter, lngCenter]}
-                icon={createBlockLabelIcon(item.name, isActive)}
+                icon={createBlockLabelIcon(item.name, isActive, isDimmed)}
                 eventHandlers={{ click: () => onSelect(item.name) }}
               />
             </div>
@@ -711,6 +719,8 @@ export default function HomePage() {
   const [distilleryQuery, setDistilleryQuery] = useState("");
   const [selectedCountryGroup, setSelectedCountryGroup] = useState<(typeof wineCountryGroups)[number]["name"]>("프랑스");
   const [selectedCountry, setSelectedCountry] = useState("프랑스");
+  const [archiveEditMode, setArchiveEditMode] = useState(false);
+  const [archiveDraft, setArchiveDraft] = useState<Note | null>(null);
 
   const wineCountryOptions = useMemo(
     () => wineCountryGroups.find((group) => group.name === selectedCountryGroup)?.countries ?? ["프랑스"],
@@ -790,6 +800,29 @@ export default function HomePage() {
     reader.readAsDataURL(file);
   };
 
+  const handleArchiveImageUpload = (
+    event: React.ChangeEvent<HTMLInputElement>,
+    target: "photo" | "labelPhoto" | "teaLeafPhoto",
+    urlKey: "photoUrl" | "labelPhotoUrl" | "teaLeafUrl",
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setArchiveDraft((prev) => (prev ? { ...prev, [target]: String(reader.result), [urlKey]: "" } : prev));
+    };
+    reader.readAsDataURL(file);
+    event.target.value = "";
+  };
+
+  const applyArchiveMediaUrl = (
+    value: string,
+    target: "photo" | "labelPhoto" | "teaLeafPhoto",
+    urlKey: "photoUrl" | "labelPhotoUrl" | "teaLeafUrl",
+  ) => {
+    setArchiveDraft((prev) => (prev ? { ...prev, [target]: "", [urlKey]: value.trim() } : prev));
+  };
+
   const saveNote = async () => {
     const regionLabel =
       category === "whisky"
@@ -851,6 +884,45 @@ export default function HomePage() {
     setView("tasting");
   };
 
+  const startArchiveEdit = (note: Note) => {
+    setArchiveDraft({ ...note });
+    setArchiveEditMode(true);
+  };
+
+  const saveArchiveEdit = async () => {
+    if (!archiveDraft) return;
+
+    const draft: Note = {
+      ...archiveDraft,
+      people: archiveDraft.people === "직접입력" ? archiveDraft.people : archiveDraft.people,
+      distilleryName: archiveDraft.selectedDistillery?.name_ko || archiveDraft.distilleryName,
+    };
+
+    const response = await fetch("/api/notes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ note: draft }),
+    });
+
+    if (!response.ok) {
+      if (typeof globalThis !== "undefined" && typeof globalThis.alert === "function") {
+        globalThis.alert("수정에 실패했습니다.");
+      }
+      return;
+    }
+
+    setNotes((prev) => [draft, ...prev.filter((note) => note.id !== draft.id)]);
+    setSelectedNote(draft);
+    setArchiveEditMode(false);
+    setArchiveDraft(null);
+    setShowToast(true);
+  };
+
+  const cancelArchiveEdit = () => {
+    setArchiveEditMode(false);
+    setArchiveDraft(null);
+  };
+
   const isWhisky = category === "whisky";
   const isWine = category === "wine";
   const isTea = category === "tea";
@@ -863,8 +935,33 @@ export default function HomePage() {
     setDetailPanels({ region: false, teaLeaf: false, label: false });
   }, [selectedNote?.id]);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSelectedNote(null);
+        setArchiveEditMode(false);
+        setArchiveDraft(null);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   return (
-    <main className="min-h-screen">
+    <main
+      className="min-h-screen"
+      style={
+        view !== "landing"
+          ? {
+              backgroundImage: `url('/assets/bg${category === "whisky" ? "Whisky" : category === "wine" ? "Wine" : "Tea"}.jpg')`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              backgroundAttachment: "fixed",
+            }
+          : undefined
+      }
+    >
       {view === "landing" && (
         <div className="relative min-h-screen overflow-hidden bg-cover bg-center" style={{ backgroundImage: "url('/assets/bgOpen.jpg')" }}>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(17,10,7,0.34),rgba(17,10,7,0.74))]" />
@@ -915,25 +1012,26 @@ export default function HomePage() {
 
       {view !== "landing" && (
         <div className="min-h-screen px-4 py-6 md:px-8">
-          <div className="mx-auto max-w-7xl overflow-hidden rounded-[32px] border border-white/30 shadow-[0_30px_60px_rgba(46,31,25,0.16)]" style={{ backgroundImage: `url('/assets/bg${view === "tasting" ? (category === "whisky" ? "Whisky" : category === "wine" ? "Wine" : "Tea") : "Whisky"}.jpg')`, backgroundSize: "cover", backgroundPosition: "center" }}>
-            <div className="bg-[linear-gradient(180deg,rgba(14,10,9,0.18),rgba(14,10,9,0.6))] p-4 md:p-6">
-              <header className="glass-panel rounded-[24px] px-4 py-3 text-[#281d18] md:px-6">
+          <div className="mx-auto max-w-[1280px] overflow-hidden rounded-[32px] border border-white/30 shadow-[0_30px_60px_rgba(46,31,25,0.16)]" style={{ background: "transparent", border: "none", boxShadow: "none" }}>
+            <div className="p-4 md:p-6">
+              <header className="rounded-[26px] border border-white/25 px-4 py-3 text-[#281d18] shadow-[0_18px_36px_rgba(68,50,42,0.08),inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-xl md:px-6" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.24), rgba(245,236,230,0.16))" }}>
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="rounded-full bg-[#f1e6dc] p-2 text-[#533d32]"><FontAwesomeIcon icon={faGlassCheers} /></div>
-                    <div>
-                      <div className="text-[10px] tracking-[0.3em] text-[#715d55]">TASTING NOTE</div>
-                      <div className="brand-script text-3xl leading-none tracking-[0.04em] text-[#2d201d]">A Slow, Lovely Pour</div>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e5d5c8] bg-[linear-gradient(180deg,#f9f3ef,#e9d7c8)] text-[#4d382e] shadow-[0_6px_14px_rgba(101,77,64,0.12)]"><FontAwesomeIcon icon={faGlassCheers} className="text-sm" /></div>
+                    <div className="min-w-0">
+                      <div className="text-[10px] tracking-[0.34em] text-[#715d55]">TASTING NOTE</div>
+                      <div className="brand-script mt-1 text-[2.1rem] leading-[0.9] tracking-[0.04em] text-[#2d201d] md:text-[2.5rem]">A Slow, Lovely Pour</div>
                     </div>
                   </div>
-                  <nav className="flex flex-wrap gap-2">
+                  <nav className="flex flex-nowrap items-center gap-2 overflow-hidden">
                     {[
                       { key: "tasting", label: "Tasting Note", icon: faBookOpen },
                       { key: "archive", label: "Archive", icon: faSearch },
                       { key: "calendar", label: "Calendar", icon: faCalendarAlt },
                     ].map((item) => (
-                      <button key={item.key} type="button" onClick={() => setView(item.key as "tasting" | "archive" | "calendar")} className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium ${view === item.key ? "bg-[#2a201d] text-[#f4efe9]" : "bg-white/60 text-[#2a201d]"}`}>
-                        <FontAwesomeIcon icon={item.icon} />{item.label}
+                      <button key={item.key} type="button" onClick={() => setView(item.key as "tasting" | "archive" | "calendar")} className={`inline-flex min-w-0 shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200 ${view === item.key ? "border-[#3b2a25] bg-[#2a201d] text-[#f4efe9] shadow-[0_8px_18px_rgba(42,32,29,0.2)]" : "border-[#e6d8cb] bg-white/45 text-[#2a201d] hover:bg-white/60"}`}>
+                        <FontAwesomeIcon icon={item.icon} className="shrink-0" />
+                        <span className="truncate">{item.label}</span>
                       </button>
                     ))}
                   </nav>
@@ -942,7 +1040,7 @@ export default function HomePage() {
 
               <div className="mt-6 space-y-6">
                 {view === "tasting" && (
-                  <section className="glass-panel rounded-[28px] p-4 md:p-6">
+                  <section className="rounded-[28px] border border-white/20 bg-white/20 p-4 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm md:p-6">
                     <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                       <div>
                         <div className="text-[10px] tracking-[0.3em] text-[#6c594f]">CATEGORY</div>
@@ -1185,16 +1283,16 @@ export default function HomePage() {
                 )}
 
                 {view === "archive" && (
-                  <section className="glass-panel rounded-[28px] p-4 md:p-6">
+                  <section className="archive-doc-shell rounded-[28px] border border-white/20 bg-white/30 p-4 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm md:p-6">
                     <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                       <div>
-                        <div className="text-[10px] tracking-[0.3em] text-[#6c594f]">ARCHIVE</div>
-                        <h2 className="mt-1 text-3xl font-semibold text-[#221d1b]">기록 아카이브</h2>
+                        <div className="document-section-label">ARCHIVE</div>
+                        <h2 className="mt-1 text-[1.85rem] font-semibold tracking-[-0.04em] text-[#221d1b]">기록 아카이브</h2>
                       </div>
                       <div className="ml-auto flex items-center justify-end gap-3">
                         <div className="flex flex-wrap justify-end gap-2">
-                          <button type="button" onClick={() => setArchiveFilter("all")} className={`rounded-full px-3 py-2 text-sm ${archiveFilter === "all" ? "bg-[#2a201d] text-white" : "bg-white/70 text-[#2a201d]"}`}>전체</button>
-                          {(["whisky", "wine", "tea"] as const).map((item) => <button key={item} type="button" onClick={() => setArchiveFilter(item)} className={`rounded-full px-3 py-2 text-sm ${archiveFilter === item ? "bg-[#2a201d] text-white" : "bg-white/70 text-[#2a201d]"}`}>{categoryLabels[item]}</button>)}
+                          <button type="button" onClick={() => setArchiveFilter("all")} className={`archive-filter-button ${archiveFilter === "all" ? "bg-[#2a201d] text-white shadow-sm" : "bg-white/70 text-[#2a201d] border-[#eadfce]"}`}>전체</button>
+                          {(["whisky", "wine", "tea"] as const).map((item) => <button key={item} type="button" onClick={() => setArchiveFilter(item)} className={`archive-filter-button ${archiveFilter === item ? "bg-[#2a201d] text-white shadow-sm" : "bg-white/70 text-[#2a201d] border-[#eadfce]"}`}>{categoryLabels[item]}</button>)}
                         </div>
                         <div className="flex items-center gap-1 rounded-full border border-[#e4d7c8] bg-gradient-to-r from-[#fffaf6] via-[#f7f0ea] to-[#f0e4db] p-1.5 shadow-[0_6px_18px_rgba(72,52,42,0.08)]">
                           <button type="button" onClick={() => setArchiveViewMode("card")} className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition-all ${archiveViewMode === "card" ? "bg-[#2a201d] text-white shadow-md shadow-[#2a201d]/20" : "text-[#42332d] hover:bg-white/70"}`} aria-label="카드 보기"><FontAwesomeIcon icon={faTableCellsLarge} className="text-sm" /></button>
@@ -1203,67 +1301,67 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    <div className="mb-5 flex items-center gap-2 rounded-2xl border border-[#e8d9c9] bg-white/70 px-3 py-2">
+                    <div className="mb-5 flex items-center gap-2 rounded-2xl border border-[#e8d9c9] bg-white/70 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
                       <FontAwesomeIcon icon={faSearch} className="text-[#695953]" />
                       <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="이름, 장소, 메모, 증류소 검색" className="w-full bg-transparent text-sm outline-none placeholder:text-[#8b766b]" />
                     </div>
 
                     {archiveViewMode === "card" ? (
-                      <div className="grid gap-4 lg:grid-cols-2">
+                      <div className="grid gap-3 lg:grid-cols-2">
                         {filteredNotes.length ? filteredNotes.map((note) => (
-                          <div key={note.id} className="w-full rounded-[28px] border border-[#e4d8ca] bg-white/80 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+                          <div key={note.id} className="archive-card w-full p-3 text-left transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_rgba(63,47,37,0.08)]">
                             <button type="button" onClick={() => setSelectedNote(note)} className="w-full text-left">
-                              <div className="mb-3 flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-[#7a655d]">
+                              <div className="archive-card-meta">
                                 <span>{categoryLabels[note.category]}</span>
                                 <span>{formatDate(note.date)}</span>
                               </div>
                               <div className="flex items-center gap-3">
-                                <div className="h-16 w-16 overflow-hidden rounded-2xl bg-[#efe3d4]">
+                                <div className="h-14 w-14 overflow-hidden rounded-[16px] bg-[#efe3d4]">
                                   {note.photo || note.photoUrl ? (
                                     <div className="relative h-full w-full">
                                       <Image src={note.photo || note.photoUrl} alt={note.name} fill unoptimized className="object-cover" />
                                     </div>
                                   ) : (
-                                    <div className="flex h-full items-center justify-center text-xl text-[#9a7b5f]">{note.category === "whisky" ? "🥃" : note.category === "wine" ? "🍷" : "🍵"}</div>
+                                    <div className="flex h-full items-center justify-center text-lg text-[#9a7b5f]">{note.category === "whisky" ? "🥃" : note.category === "wine" ? "🍷" : "🍵"}</div>
                                   )}
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <div className="truncate text-base font-semibold text-[#2a201d]">{note.name || "미기록"}</div>
-                                  <div className="mt-1 text-xs text-[#6d5d57]">{note.type || "종류 미기록"}</div>
+                                  <span className="archive-card-title truncate">{note.name || "미기록"}</span>
+                                  <span className="archive-card-subtitle">{note.type || "종류 미기록"}</span>
                                 </div>
                               </div>
                             </button>
                           </div>
-                        )) : <div className="rounded-3xl border border-dashed border-[#d7c5b3] bg-white/60 p-10 text-center text-[#5d4d47]">아직 저장된 기록이 없습니다.</div>}
+                        )) : <div className="rounded-[22px] border border-dashed border-[#d7c5b3] bg-white/60 p-8 text-center text-[#5d4d47]">아직 저장된 기록이 없습니다.</div>}
                       </div>
                     ) : (
-                      <div className="overflow-hidden rounded-[24px]">
+                      <div className="overflow-hidden rounded-[20px] border border-[#efe2d7] bg-white/60">
                         {filteredNotes.length ? filteredNotes.map((note) => (
-                          <button key={note.id} type="button" onClick={() => setSelectedNote(note)} className="grid w-full grid-cols-[48px_minmax(0,1.7fr)_minmax(0,1.2fr)_minmax(0,1fr)_auto] items-center gap-2 border-b border-[#efe3d8] px-2 py-2 text-left last:border-b-0 hover:bg-white/40">
-                            <div className="h-10 w-10 overflow-hidden rounded-lg bg-[#efe3d4]">
+                          <button key={note.id} type="button" onClick={() => setSelectedNote(note)} className="archive-row grid w-full grid-cols-[42px_minmax(0,1.7fr)_minmax(0,1.1fr)_minmax(0,1fr)_auto] items-center gap-2 text-left last:border-b-0 hover:bg-white/40">
+                            <div className="h-9 w-9 overflow-hidden rounded-lg bg-[#efe3d4]">
                               {note.photo || note.photoUrl ? (
                                 <div className="relative h-full w-full">
                                   <Image src={note.photo || note.photoUrl} alt={note.name} fill unoptimized className="object-cover" />
                                 </div>
                               ) : (
-                                <div className="flex h-full items-center justify-center text-base text-[#9a7b5f]">{note.category === "whisky" ? "🥃" : note.category === "wine" ? "🍷" : "🍵"}</div>
+                                <div className="flex h-full items-center justify-center text-sm text-[#9a7b5f]">{note.category === "whisky" ? "🥃" : note.category === "wine" ? "🍷" : "🍵"}</div>
                               )}
                             </div>
                             <div className="min-w-0">
-                              <div className="truncate text-sm font-medium text-[#2a201d]">{note.name || "미기록"}</div>
+                              <div className="truncate text-[13.5px] font-medium tracking-[-0.01em] text-[#2a201d]">{note.name || "미기록"}</div>
                             </div>
-                            <div className="truncate text-xs text-[#5f4d46]">{note.type || "종류 미기록"}</div>
-                            <div className="truncate text-xs text-[#5f4d46]">{formatDate(note.date)}</div>
-                            <div className="text-right text-[9px] font-medium uppercase tracking-[0.12em] text-[#73615d]">{categoryLabels[note.category]}</div>
+                            <div className="truncate text-[11px] text-[#5f4d46]">{note.type || "종류 미기록"}</div>
+                            <div className="truncate text-[11px] text-[#5f4d46]">{formatDate(note.date)}</div>
+                            <div className="text-right text-[8px] font-medium uppercase tracking-[0.12em] text-[#73615d]">{categoryLabels[note.category]}</div>
                           </button>
-                        )) : <div className="p-10 text-center text-[#5d4d47]">아직 저장된 기록이 없습니다.</div>}
+                        )) : <div className="p-8 text-center text-[#5d4d47]">아직 저장된 기록이 없습니다.</div>}
                       </div>
                     )}
                   </section>
                 )}
 
                 {view === "calendar" && (
-                  <section className="glass-panel rounded-[28px] p-4 md:p-6">
+                  <section className="rounded-[28px] border border-white/20 bg-white/20 p-4 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm md:p-6">
                     <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                       <div>
                         <div className="text-[10px] tracking-[0.3em] text-[#6c594f]">CALENDAR</div>
@@ -1331,106 +1429,262 @@ export default function HomePage() {
       )}
 
       {selectedNote && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1a130f]/60 p-4 backdrop-blur-sm">
-          <div className="max-h-[90vh] w-full max-w-4xl overflow-auto rounded-[30px] border border-[#ebddd0] bg-[#fffaf6] p-5 shadow-2xl">
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <div className="text-[10px] tracking-[0.25em] text-[#7e665d]">DETAIL</div>
-                <h3 className="mt-1 text-2xl font-semibold text-[#2b201d]">{selectedNote.name || "테이스팅 기록"}</h3>
-              </div>
-              <div className="flex items-center gap-2">
-                <button type="button" onClick={() => editNote(selectedNote)} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-xs text-[#3d2d25]"><FontAwesomeIcon icon={faPen} className="mr-1" />수정</button>
-                <button type="button" onClick={() => deleteNote(selectedNote.id)} className="rounded-full bg-[#f7d8d2] px-3 py-1.5 text-xs text-[#612f28]"><FontAwesomeIcon icon={faTrash} className="mr-1" />삭제</button>
-                <button type="button" onClick={() => setSelectedNote(null)} className="rounded-full bg-[#f1e6dc] px-3 py-1.5 text-sm text-[#3d2c25]">닫기</button>
-              </div>
-            </div>
-            <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
-              <div className="space-y-4">
-                <div className="relative h-72 w-full overflow-hidden rounded-[22px]">
-                  <Image src={selectedNote.photo || selectedNote.photoUrl} alt={selectedNote.name} fill unoptimized className="object-cover" />
-                </div>
-                {selectedNote.category === "whisky" && (selectedNote.labelPhoto || selectedNote.labelPhotoUrl) && (
-                  <div className="mb-3 flex flex-wrap gap-2">
-                    <button type="button" onClick={() => toggleDetailPanel("label")} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-[10px] font-medium text-[#472f2a]">
-                      {detailPanels.label ? "라벨 숨기기" : "라벨 보기"}
-                    </button>
-                    {detailDistillery && (
-                      <button type="button" onClick={() => setSelectedNote((prev) => prev ? { ...prev, regionName: prev.regionName || detailDistillery.name_ko } : prev)} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-[10px] font-medium text-[#472f2a]">
-                        증류소
-                      </button>
-                    )}
-                  </div>
-                )}
-                {selectedNote.category === "wine" && selectedNote.regionName && (
-                  <div className="mb-3 flex flex-wrap gap-2">
-                    <button type="button" onClick={() => toggleDetailPanel("region")} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-[10px] font-medium text-[#472f2a]">
-                      {detailPanels.region ? "산지 숨기기" : "산지 보기"}
-                    </button>
-                  </div>
-                )}
-                {selectedNote.category === "tea" && (
-                  <div className="mb-3 flex flex-wrap gap-2">
-                    {selectedNote.regionName && (
-                      <button type="button" onClick={() => toggleDetailPanel("region")} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-[10px] font-medium text-[#472f2a]">
-                        {detailPanels.region ? "산지 숨기기" : "산지 보기"}
-                      </button>
-                    )}
-                    {(selectedNote.teaLeafPhoto || selectedNote.teaLeafUrl) && (
-                      <button type="button" onClick={() => toggleDetailPanel("teaLeaf")} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-[10px] font-medium text-[#472f2a]">
-                        {detailPanels.teaLeaf ? "차엽 숨기기" : "차엽 보기"}
-                      </button>
-                    )}
-                  </div>
-                )}
-                {detailPanels.label && (selectedNote.labelPhoto || selectedNote.labelPhotoUrl) && (
-                  <div className="relative mb-3 h-56 overflow-hidden rounded-[22px] border border-[#e6d7c6] bg-white/60">
-                    <Image src={selectedNote.labelPhoto || selectedNote.labelPhotoUrl} alt="label" fill unoptimized className="object-contain p-4" />
-                  </div>
-                )}
-                {detailPanels.teaLeaf && (selectedNote.teaLeafPhoto || selectedNote.teaLeafUrl) && (
-                  <div className="relative mb-3 h-56 overflow-hidden rounded-[22px] border border-[#e6d7c6] bg-white/60">
-                    <Image src={selectedNote.teaLeafPhoto || selectedNote.teaLeafUrl} alt="tea leaf" fill unoptimized className="object-contain p-4" />
-                  </div>
-                )}
-                {detailPanels.region && selectedNote.regionName && (() => {
-                  const archiveMap = getArchiveRegionMapProps(selectedNote);
-                  if (!archiveMap) return null;
-                  return (
-                    <div className="mb-3 h-52 overflow-hidden rounded-[22px] border border-[#e6d7c6] bg-white/60">
-                      <RegionBlockMap
-                        items={archiveMap.items}
-                        activeId={selectedNote.regionName}
-                        showMap
-                        mapShape={archiveMap.mapShape}
-                        geoJson={archiveMap.geoJson}
-                        onSelect={() => undefined}
-                      />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1a130f]/55 p-4 backdrop-blur-[2px]" onClick={() => {
+          setSelectedNote(null);
+          setArchiveEditMode(false);
+          setArchiveDraft(null);
+        }}>
+          <div className="max-h-[90vh] w-full max-w-5xl overflow-auto rounded-[30px] border border-[#ebddd0] bg-[#fffaf6] p-5 shadow-[0_26px_60px_rgba(72,52,42,0.16)]" onClick={(e) => e.stopPropagation()}>
+            {archiveEditMode && archiveDraft ? (
+              <div className="document-section-group mx-auto max-w-5xl">
+                <div className="document-modal-shell p-3">
+                  <div className="document-modal-header">
+                    <div>
+                      <div className="text-[10px] tracking-[0.26em] text-[#7e665d]">EDIT NOTE</div>
+                      <h3 className="mt-1 text-2xl font-semibold text-[#2b201d]">{archiveDraft.name || "테이스팅 기록"}</h3>
                     </div>
-                  );
-                })()}
-              </div>
-              <div className="user-serif space-y-4 text-sm text-[#3c2d26]">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">날짜</div><div className="mt-2 font-semibold">{formatDate(selectedNote.date)}</div></div>
-                  <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">장소</div><div className="mt-2 font-semibold">{selectedNote.place || "-"}</div></div>
-                  <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">마신 사람</div><div className="mt-2 font-semibold">{selectedNote.people || "-"}</div></div>
-                  <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">종류</div><div className="mt-2 font-semibold">{selectedNote.type || "-"}</div></div>
-                  <div className="rounded-2xl bg-[#f5eee8] p-3 col-span-2"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">저장된 산지</div><div className="mt-2 font-semibold">{getSavedRegionLabel(selectedNote)}</div></div>
-                </div>
-                <div className="rounded-2xl bg-[#f8f2eb] p-4">
-                  <div className="mb-2 font-semibold text-[#2d2320]">기본 정보</div>
-                  <div className="space-y-2 text-[#5a4a43]">
-                    <p>향: {selectedNote.aroma || "-"}</p>
-                    <p>맛: {selectedNote.taste || "-"}</p>
-                    <p>피니시: {selectedNote.finish || "-"}</p>
-                    <p>산지: {getSavedRegionLabel(selectedNote)}</p>
-                    <p>메모: {selectedNote.notes || "-"}</p>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={cancelArchiveEdit} className="document-button document-button--ghost">취소</button>
+                      <button type="button" onClick={saveArchiveEdit} className="document-button document-button--primary">저장</button>
+                    </div>
                   </div>
                 </div>
-                {selectedNote.category === "wine" && (
-                  <div className="rounded-2xl bg-[#f8f2eb] p-4">
-                    <div className="mb-3 font-semibold text-[#2d2320]">맛 프로필</div>
-                    <div className="space-y-3">
+
+                <div className="document-section-group">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="form-label-row">
+                      <span>날짜</span>
+                      <input
+                        type="date"
+                        value={archiveDraft.date}
+                        onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, date: e.target.value } : prev)}
+                        className="form-label-input"
+                      />
+                    </label>
+                    <label className="form-label-row">
+                      <span>장소</span>
+                      <input
+                        value={archiveDraft.place}
+                        onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, place: e.target.value } : prev)}
+                        className="form-label-input"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="form-label-row">
+                      <span>마신 사람</span>
+                      <input
+                        value={archiveDraft.people}
+                        onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, people: e.target.value } : prev)}
+                        className="form-label-input"
+                      />
+                    </label>
+                    <label className="form-label-row">
+                      <span>종류</span>
+                      <input
+                        value={archiveDraft.type}
+                        onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, type: e.target.value } : prev)}
+                        className="form-label-input"
+                      />
+                    </label>
+                  </div>
+
+                    <label className="form-label-row">
+                    <span>이름</span>
+                    <input
+                      value={archiveDraft.name}
+                      onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, name: e.target.value } : prev)}
+                      className="form-label-input"
+                    />
+                  </label>
+                </div>
+
+                <div className="document-section-group">
+                  <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+                    <div className="document-section-surface p-4">
+                      <div className="document-section-label">이미지</div>
+                      <div className="grid gap-4 md:grid-cols-2">
+                      <div className="rounded-[18px] bg-[#fffdfb] p-3">
+                        <div className="mb-2 text-[11px] font-medium text-[#5e4740]">메인 사진</div>
+                        {archiveDraft.photo || archiveDraft.photoUrl ? (
+                          <div className="relative h-32 overflow-hidden rounded-[14px] bg-[#f7efe8]">
+                            <Image src={archiveDraft.photo || archiveDraft.photoUrl} alt="main" fill unoptimized className="object-cover" />
+                          </div>
+                        ) : (
+                          <div className="flex h-32 items-center justify-center rounded-[14px] border border-dashed border-[#d9c4b2] bg-[#faf3ee] text-xs text-[#8b736b]">사진 없음</div>
+                        )}
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#eee2d6] px-3 py-1.5 text-[10px] font-medium text-[#41332d]">
+                            <FontAwesomeIcon icon={faCamera} className="text-[10px]" />
+                            카메라
+                            <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(event) => handleArchiveImageUpload(event, "photo", "photoUrl")} />
+                          </label>
+                          <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#f6efe9] px-3 py-1.5 text-[10px] font-medium text-[#41332d]">
+                            <FontAwesomeIcon icon={faUpload} className="text-[10px]" />
+                            업로드
+                            <input type="file" accept="image/*" className="hidden" onChange={(event) => handleArchiveImageUpload(event, "photo", "photoUrl")} />
+                          </label>
+                          <input
+                            value={archiveDraft.photoUrl}
+                            onChange={(e) => applyArchiveMediaUrl(e.target.value, "photo", "photoUrl")}
+                            placeholder="사진 URL"
+                            className="min-w-0 flex-1 rounded-full border border-[#e9d4c2] bg-white px-2.5 py-1.5 text-[10px] text-[#2d201d] outline-none placeholder:text-[#9a8a82]"
+                          />
+                        </div>
+                      </div>
+
+                      {(archiveDraft.category === "whisky" || archiveDraft.category === "wine") && (
+                        <div className="rounded-[18px] bg-[#fffdfb] p-3">
+                          <div className="mb-2 text-[11px] font-medium text-[#5e4740]">라벨</div>
+                          {archiveDraft.labelPhoto || archiveDraft.labelPhotoUrl ? (
+                            <div className="relative h-32 overflow-hidden rounded-[14px] bg-[#f7efe8]">
+                              <Image src={archiveDraft.labelPhoto || archiveDraft.labelPhotoUrl} alt="label" fill unoptimized className="object-contain p-2" />
+                            </div>
+                          ) : (
+                            <div className="flex h-32 items-center justify-center rounded-[14px] border border-dashed border-[#d9c4b2] bg-[#faf3ee] text-xs text-[#8b736b]">라벨 없음</div>
+                          )}
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#eee2d6] px-3 py-1.5 text-[10px] font-medium text-[#41332d]">
+                              <FontAwesomeIcon icon={faCamera} className="text-[10px]" />
+                              카메라
+                              <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(event) => handleArchiveImageUpload(event, "labelPhoto", "labelPhotoUrl")} />
+                            </label>
+                            <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#f6efe9] px-3 py-1.5 text-[10px] font-medium text-[#41332d]">
+                              <FontAwesomeIcon icon={faUpload} className="text-[10px]" />
+                              업로드
+                              <input type="file" accept="image/*" className="hidden" onChange={(event) => handleArchiveImageUpload(event, "labelPhoto", "labelPhotoUrl")} />
+                            </label>
+                            <input
+                              value={archiveDraft.labelPhotoUrl}
+                              onChange={(e) => applyArchiveMediaUrl(e.target.value, "labelPhoto", "labelPhotoUrl")}
+                              placeholder="라벨 URL"
+                              className="min-w-0 flex-1 rounded-full border border-[#e9d4c2] bg-white px-2.5 py-1.5 text-[10px] text-[#2d201d] outline-none placeholder:text-[#9a8a82]"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {archiveDraft.category === "tea" && (
+                        <div className="rounded-[18px] bg-[#fffdfb] p-3 md:col-span-2">
+                          <div className="mb-2 text-[11px] font-medium text-[#5e4740]">차엽</div>
+                          {archiveDraft.teaLeafPhoto || archiveDraft.teaLeafUrl ? (
+                            <div className="relative h-32 overflow-hidden rounded-[14px] bg-[#f7efe8]">
+                              <Image src={archiveDraft.teaLeafPhoto || archiveDraft.teaLeafUrl} alt="tea leaf" fill unoptimized className="object-contain p-2" />
+                            </div>
+                          ) : (
+                            <div className="flex h-32 items-center justify-center rounded-[14px] border border-dashed border-[#d9c4b2] bg-[#faf3ee] text-xs text-[#8b736b]">차엽 없음</div>
+                          )}
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#eee2d6] px-3 py-1.5 text-[10px] font-medium text-[#41332d]">
+                              <FontAwesomeIcon icon={faCamera} className="text-[10px]" />
+                              카메라
+                              <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(event) => handleArchiveImageUpload(event, "teaLeafPhoto", "teaLeafUrl")} />
+                            </label>
+                            <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#f6efe9] px-3 py-1.5 text-[10px] font-medium text-[#41332d]">
+                              <FontAwesomeIcon icon={faUpload} className="text-[10px]" />
+                              업로드
+                              <input type="file" accept="image/*" className="hidden" onChange={(event) => handleArchiveImageUpload(event, "teaLeafPhoto", "teaLeafUrl")} />
+                            </label>
+                            <input
+                              value={archiveDraft.teaLeafUrl}
+                              onChange={(e) => applyArchiveMediaUrl(e.target.value, "teaLeafPhoto", "teaLeafUrl")}
+                              placeholder="차엽 URL"
+                              className="min-w-0 flex-1 rounded-full border border-[#e9d4c2] bg-white px-2.5 py-1.5 text-[10px] text-[#2d201d] outline-none placeholder:text-[#9a8a82]"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                    <div className="document-section-surface p-4">
+                      {archiveDraft.category === "whisky" ? (
+                        <>
+                          <div className="document-section-label">증류소 수정</div>
+                          <input
+                            value={archiveDraft.distilleryName || archiveDraft.regionName || ""}
+                            onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, distilleryName: e.target.value, regionName: e.target.value } : prev)}
+                            placeholder="증류소명"
+                            className="w-full rounded-2xl border border-[#f0d8c7] bg-white px-3 py-2 text-sm text-[#2d201d] outline-none transition hover:border-[#d8b59a] focus:border-[#c98d5e] focus:shadow-[0_0_0_4px_rgba(201,141,94,0.12)]"
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <div className="document-section-label">산지 수정</div>
+                          <div className="mb-3 h-64 overflow-hidden rounded-[22px] border border-[#e6d7c6] bg-white/60">
+                            {archiveDraft.category === "wine" ? (() => {
+                              const archiveMap = getArchiveRegionMapProps(archiveDraft);
+                              if (!archiveMap) return null;
+                              return (
+                                <RegionBlockMap
+                                  items={archiveMap.items}
+                                  activeId={archiveDraft.regionName}
+                                  showMap
+                                  hideUnselected
+                                  mapShape={archiveMap.mapShape}
+                                  geoJson={archiveMap.geoJson}
+                                  onSelect={(name) => setArchiveDraft((prev) => prev ? { ...prev, regionName: name } : prev)}
+                                />
+                              );
+                            })() : (
+                              <RegionBlockMap
+                                items={teaBlocks}
+                                activeId={archiveDraft.regionName}
+                                showMap
+                                hideUnselected
+                                mapShape={chinaMapShape}
+                                geoJson={chinaProvinceGeoJson[archiveDraft.regionName] ?? chinaProvinceGeoJson["안휘"]}
+                                onSelect={(name) => setArchiveDraft((prev) => prev ? { ...prev, regionName: name } : prev)}
+                              />
+                            )}
+                          </div>
+                          <input
+                            value={archiveDraft.regionName}
+                            onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, regionName: e.target.value } : prev)}
+                            placeholder="산지 이름"
+                            className="w-full rounded-2xl border border-[#f0d8c7] bg-white px-3 py-2 text-sm text-[#2d201d] outline-none transition hover:border-[#d8b59a] focus:border-[#c98d5e] focus:shadow-[0_0_0_4px_rgba(201,141,94,0.12)]"
+                          />
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="document-section-group">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="form-label-row">
+                      <span>향</span>
+                      <textarea
+                        value={archiveDraft.aroma}
+                        onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, aroma: e.target.value } : prev)}
+                        className="form-label-textarea min-h-[100px]"
+                      />
+                    </label>
+                    <label className="form-label-row">
+                      <span>맛</span>
+                      <textarea
+                        value={archiveDraft.taste}
+                        onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, taste: e.target.value } : prev)}
+                        className="form-label-textarea min-h-[100px]"
+                      />
+                    </label>
+                  </div>
+
+                  <label className="form-label-row">
+                    <span>피니시</span>
+                    <textarea
+                      value={archiveDraft.finish}
+                      onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, finish: e.target.value } : prev)}
+                      className="form-label-textarea min-h-[100px]"
+                    />
+                  </label>
+                </div>
+
+                {(archiveDraft.category === "wine" || archiveDraft.category === "tea") && (
+                  <div className="document-section-surface p-4">
+                    <div className="mb-3 font-semibold text-[#3d3028]">맛 프로필</div>
+                    <div className="grid gap-4 md:grid-cols-2">
                       {([
                         ["body", "바디"],
                         ["acidity", "산미"],
@@ -1439,32 +1693,172 @@ export default function HomePage() {
                         ["sweetness", "당도"],
                         ["complexity", "복합성"],
                         ["balance", "밸런스"],
-                      ] as const).map(([key, label]) => {
-                        const value = Number(selectedNote[key]) || 1;
-                        const fill = (value / 5) * 100;
-                        return (
-                          <div key={key}>
-                            <div className="mb-1 flex items-center justify-between text-[11px] text-[#6b554d]">
-                              <span>{label}</span>
-                              <span>{value}/5</span>
-                            </div>
-                            <div className="h-2.5 w-full overflow-hidden rounded-full bg-[#eadbcd]">
-                              <div
-                                className="h-full rounded-full transition-all duration-300"
-                                style={{
-                                  width: `${fill}%`,
-                                  background: "linear-gradient(90deg, #be8660 0%, #9a5f3d 100%)",
-                                }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
+                      ] as const).map(([key, label]) => (
+                        <label key={String(key)} className="block text-sm font-medium text-[#3c2d26]">
+                          <span className="mb-2 block">{label}</span>
+                          <input
+                            type="range"
+                            min={1}
+                            max={5}
+                            value={Number(archiveDraft[key as keyof Note] ?? 1)}
+                            onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, [key]: Number(e.target.value) } : prev)}
+                            className="range-slider w-full"
+                          />
+                          <div className="mt-1 text-right text-xs text-[#735f55]">{Number(archiveDraft[key as keyof Note] ?? 1)}/5</div>
+                        </label>
+                      ))}
                     </div>
                   </div>
                 )}
+
+                <label className="form-label-row">
+                  <span>기타 메모</span>
+                  <textarea
+                    value={archiveDraft.notes}
+                    onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, notes: e.target.value } : prev)}
+                    className="form-label-textarea min-h-[120px]"
+                  />
+                </label>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="document-modal-shell mb-5 p-3">
+                  <div className="document-modal-header">
+                    <div>
+                      <div className="text-[10px] tracking-[0.25em] text-[#7e665d]">DETAIL</div>
+                      <h3 className="mt-1 text-2xl font-semibold text-[#2b201d]">{selectedNote.name || "테이스팅 기록"}</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => startArchiveEdit(selectedNote)} className="document-button document-button--secondary"><FontAwesomeIcon icon={faPen} className="mr-1" />수정</button>
+                      <button type="button" onClick={() => deleteNote(selectedNote.id)} className="document-button document-button--ghost text-[#612f28] border-[#e9c9c2] bg-[#f9ece8]"><FontAwesomeIcon icon={faTrash} className="mr-1" />삭제</button>
+                      <button type="button" onClick={() => setSelectedNote(null)} className="document-button document-button--ghost">닫기</button>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
+                  <div className="space-y-4">
+                    <div className="relative h-72 w-full overflow-hidden rounded-[22px]">
+                      <Image src={selectedNote.photo || selectedNote.photoUrl} alt={selectedNote.name} fill unoptimized className="object-cover" />
+                    </div>
+                    {(selectedNote.category === "whisky" || selectedNote.category === "wine") && (selectedNote.labelPhoto || selectedNote.labelPhotoUrl) && (
+                      <div className="mb-3 flex flex-wrap gap-2">
+                        <button type="button" onClick={() => toggleDetailPanel("label")} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-[10px] font-medium text-[#472f2a]">
+                          {detailPanels.label ? "라벨 숨기기" : "라벨 보기"}
+                        </button>
+                        {selectedNote.category === "whisky" && detailDistillery && (
+                          <button type="button" onClick={() => setSelectedNote((prev) => prev ? { ...prev, regionName: prev.regionName || detailDistillery.name_ko } : prev)} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-[10px] font-medium text-[#472f2a]">
+                            증류소
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {selectedNote.category === "wine" && selectedNote.regionName && (
+                      <div className="mb-3 flex flex-wrap gap-2">
+                        <button type="button" onClick={() => toggleDetailPanel("region")} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-[10px] font-medium text-[#472f2a]">
+                          {detailPanels.region ? "산지 숨기기" : "산지 보기"}
+                        </button>
+                      </div>
+                    )}
+                    {selectedNote.category === "tea" && (
+                      <div className="mb-3 flex flex-wrap gap-2">
+                        {selectedNote.regionName && (
+                          <button type="button" onClick={() => toggleDetailPanel("region")} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-[10px] font-medium text-[#472f2a]">
+                            {detailPanels.region ? "산지 숨기기" : "산지 보기"}
+                          </button>
+                        )}
+                        {(selectedNote.teaLeafPhoto || selectedNote.teaLeafUrl) && (
+                          <button type="button" onClick={() => toggleDetailPanel("teaLeaf")} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-[10px] font-medium text-[#472f2a]">
+                            {detailPanels.teaLeaf ? "차엽 숨기기" : "차엽 보기"}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {detailPanels.label && (selectedNote.labelPhoto || selectedNote.labelPhotoUrl) && (
+                      <div className="relative mb-3 h-56 overflow-hidden rounded-[22px] border border-[#e6d7c6] bg-white/60">
+                        <Image src={selectedNote.labelPhoto || selectedNote.labelPhotoUrl} alt="label" fill unoptimized className="object-contain p-4" />
+                      </div>
+                    )}
+                    {detailPanels.teaLeaf && (selectedNote.teaLeafPhoto || selectedNote.teaLeafUrl) && (
+                      <div className="relative mb-3 h-56 overflow-hidden rounded-[22px] border border-[#e6d7c6] bg-white/60">
+                        <Image src={selectedNote.teaLeafPhoto || selectedNote.teaLeafUrl} alt="tea leaf" fill unoptimized className="object-contain p-4" />
+                      </div>
+                    )}
+                    {detailPanels.region && selectedNote.regionName && (() => {
+                      const archiveMap = getArchiveRegionMapProps(selectedNote);
+                      if (!archiveMap) return null;
+                      return (
+                        <div className="mb-3 h-52 overflow-hidden rounded-[22px] border border-[#e6d7c6] bg-white/60">
+                          <RegionBlockMap
+                            items={archiveMap.items}
+                            activeId={selectedNote.regionName}
+                            showMap
+                            hideUnselected
+                            mapShape={archiveMap.mapShape}
+                            geoJson={archiveMap.geoJson}
+                            onSelect={() => undefined}
+                          />
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  <div className="user-serif space-y-4 text-sm text-[#3c2d26]">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">날짜</div><div className="mt-2 font-semibold">{formatDate(selectedNote.date)}</div></div>
+                      <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">장소</div><div className="mt-2 font-semibold">{selectedNote.place || "-"}</div></div>
+                      <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">마신 사람</div><div className="mt-2 font-semibold">{selectedNote.people || "-"}</div></div>
+                      <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">종류</div><div className="mt-2 font-semibold">{selectedNote.type || "-"}</div></div>
+                      <div className="rounded-2xl bg-[#f5eee8] p-3 col-span-2"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">저장된 산지</div><div className="mt-2 font-semibold">{getSavedRegionLabel(selectedNote)}</div></div>
+                    </div>
+                    <div className="rounded-2xl bg-[#f8f2eb] p-4">
+                      <div className="mb-2 font-semibold text-[#2d2320]">기본 정보</div>
+                      <div className="space-y-2 text-[#5a4a43]">
+                        <p>향: {selectedNote.aroma || "-"}</p>
+                        <p>맛: {selectedNote.taste || "-"}</p>
+                        <p>피니시: {selectedNote.finish || "-"}</p>
+                        <p>산지: {getSavedRegionLabel(selectedNote)}</p>
+                        <p>메모: {selectedNote.notes || "-"}</p>
+                      </div>
+                    </div>
+                    {selectedNote.category === "wine" && (
+                      <div className="rounded-2xl bg-[#f8f2eb] p-4">
+                        <div className="mb-3 font-semibold text-[#2d2320]">맛 프로필</div>
+                        <div className="space-y-3">
+                          {([
+                            ["body", "바디"],
+                            ["acidity", "산미"],
+                            ["tannin", "탄닌"],
+                            ["alcohol", "알코올"],
+                            ["sweetness", "당도"],
+                            ["complexity", "복합성"],
+                            ["balance", "밸런스"],
+                          ] as const).map(([key, label]) => {
+                            const value = Number(selectedNote[key]) || 1;
+                            const fill = (value / 5) * 100;
+                            return (
+                              <div key={key}>
+                                <div className="mb-1 flex items-center justify-between text-[11px] text-[#6b554d]">
+                                  <span>{label}</span>
+                                  <span>{value}/5</span>
+                                </div>
+                                <div className="h-2.5 w-full overflow-hidden rounded-full bg-[#eadbcd]">
+                                  <div
+                                    className="h-full rounded-full transition-all duration-300"
+                                    style={{
+                                      width: `${fill}%`,
+                                      background: "linear-gradient(90deg, #be8660 0%, #9a5f3d 100%)",
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

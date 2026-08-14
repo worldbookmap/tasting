@@ -76,7 +76,19 @@ export async function POST(request: Request) {
   if (body?.deleteId) {
     nextNotes = nextNotes.filter((note) => note.id !== body.deleteId);
   } else if (body?.note) {
-    nextNotes = [body.note as NoteRecord, ...nextNotes];
+    const incoming = body.note as NoteRecord;
+    const targetId = incoming.id;
+
+    if (targetId) {
+      const existingIndex = nextNotes.findIndex((note) => note.id === targetId);
+      if (existingIndex >= 0) {
+        nextNotes = nextNotes.map((note) => (note.id === targetId ? { ...note, ...incoming } : note));
+      } else {
+        nextNotes = [incoming, ...nextNotes];
+      }
+    } else {
+      nextNotes = [incoming, ...nextNotes];
+    }
   }
 
   await writeNotes(nextNotes);
