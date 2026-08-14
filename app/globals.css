@@ -1,0 +1,78 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+:root {
+  --background: #f5efe7;
+  --foreground: #1f1b17;
+  --card: rgba(255, 255, 255, 0.75);
+  --panel: rgba(33, 28, 24, 0.62);
+  --muted: #6c625d;
+  --line: rgba(80, 67, 56, 0.14);
+  --shadow: rgba(27, 18, 12, 0.14);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background:
+    radial-gradient(circle at top, rgba(155, 123, 89, 0.12), transparent 32%),
+    var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 1rem;
+  background: #f3ede7;
+}
+
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 8px 20px rgba(33, 28, 24, 0.15) !important;
+}
+
+.leaflet-control-zoom a {
+  color: #1f1b17 !important;
+}
+
+.text-shadow-soft {
+  text-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 18px 45px rgba(45, 31, 19, 0.08);
+}
+
+.dark-panel {
+  background: rgba(28, 24, 21, 0.56);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.12);
+}
+
+.range-slider {
+  accent-color: #99704d;
+}
