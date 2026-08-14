@@ -1295,12 +1295,12 @@ export default function HomePage() {
                       <div className="grid gap-4 md:grid-cols-3">
                         {(["aroma", "taste", "finish"] as const).map((field) => (
                           <div key={field} className="rounded-2xl border border-[#d9cbb9] bg-white/80 p-3">
-                            <div className="mb-1.5 flex items-center justify-between text-xs font-semibold text-[#3a2d28]">
+                            <div className="mb-1.5 flex items-center justify-between text-sm font-semibold text-[#3a2d28] sm:text-[13px]">
                               <span>{field === "aroma" ? "향" : field === "taste" ? "맛" : "피니시"}</span>
-                              <button type="button" onClick={() => setTagModal({ field, value: "" })} className="rounded-full border border-white/60 bg-white/25 px-1.5 py-0.5 text-[6px] font-medium tracking-[0.06em] text-[#64534d] shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_2px_7px_rgba(122,92,75,0.04)] backdrop-blur-sm transition-all duration-200 hover:bg-white/35">칩 추가</button>
+                              <button type="button" onClick={() => setTagModal({ field, value: "" })} className="rounded-full border border-white/60 bg-white/25 px-1.5 py-0.5 text-[7px] font-medium tracking-[0.06em] text-[#64534d] shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_2px_7px_rgba(122,92,75,0.04)] backdrop-blur-sm transition-all duration-200 hover:bg-white/35">칩 추가</button>
                             </div>
                             <div className="mb-1 flex flex-wrap gap-[2px]">
-                              {tagOptions.map((tag) => <button key={tag} type="button" onClick={() => addTag(field, tag)} className="premium-tag rounded-full border border-[#f1cfba] bg-[#fff6f2]/90 px-[4px] py-[2px] text-[2.5px] font-medium text-[#493a34] leading-[1.1] tracking-[-0.02em] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#e0a986] hover:bg-[#fdeee5]">{tag}</button>)}
+                              {tagOptions.map((tag) => <button key={tag} type="button" onClick={() => addTag(field, tag)} className="premium-tag rounded-full border border-[#f1cfba] bg-[#fff6f2]/90 px-[4px] py-[2px] text-[10px] font-medium text-[#493a34] leading-[1.1] tracking-[-0.02em] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#e0a986] hover:bg-[#fdeee5]">{tag}</button>)}
                             </div>
                             <textarea value={form[field]} onChange={(e) => updateField(field, e.target.value)} className="form-label-textarea" />
                           </div>

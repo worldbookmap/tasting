@@ -286,9 +286,9 @@ textarea {
   min-width: 82px;
   flex-shrink: 0;
   padding-left: 0.02rem;
-  font-size: 10.5px;
+  font-size: 14px;
   line-height: 1.25;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   font-weight: 700;
   color: #4a382f;
@@ -366,8 +366,8 @@ input[type="date"].form-label-input::-webkit-calendar-picker-indicator {
 
   .form-label-row > span {
     min-width: 0;
-    letter-spacing: 0.12em;
-    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    font-size: 12px;
   }
 
   .form-label-input,
