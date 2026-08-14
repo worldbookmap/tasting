@@ -1071,7 +1071,7 @@ export default function HomePage() {
 
               <div className="mt-6 space-y-6">
                 {view === "tasting" && (
-                  <section className="rounded-[24px] border border-white/20 bg-white/20 p-2.5 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm sm:p-3 md:p-6">
+                  <section className="overflow-hidden rounded-[24px] border border-white/20 bg-white/35 p-2.5 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm sm:p-3 md:p-6">
                     <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:gap-4 md:flex-row md:items-center md:justify-between">
                       <div>
                         <div className="text-[10px] tracking-[0.3em] text-[#6c594f]">CATEGORY</div>
@@ -1338,9 +1338,9 @@ export default function HomePage() {
                     </div>
 
                     {archiveViewMode === "card" ? (
-                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
+                      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-2">
                         {filteredNotes.length ? filteredNotes.map((note) => (
-                          <div key={note.id} className="archive-card w-full p-3 text-left transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_rgba(63,47,37,0.08)]">
+                          <div key={note.id} className="archive-card w-full p-2.5 text-left transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_rgba(63,47,37,0.08)]">
                             <button type="button" onClick={() => setSelectedNote(note)} className="w-full text-left">
                               <div className="archive-card-meta">
                                 <span>{categoryLabels[note.category]}</span>

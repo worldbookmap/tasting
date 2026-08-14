@@ -264,6 +264,8 @@ textarea {
   gap: 0.72rem;
   min-height: 68px;
   width: 100%;
+  max-width: 100%;
+  overflow: hidden;
   padding: 0.5rem 0.8rem 0.5rem 0.85rem;
   border: 1px solid rgba(219, 189, 166, 0.92);
   border-radius: 18px;
@@ -337,6 +339,8 @@ textarea {
     grid-template-columns: 1fr;
     gap: 0.45rem;
     min-height: 62px;
+    max-width: 100%;
+    overflow: hidden;
     padding: 0.7rem 0.7rem 0.7rem 0.8rem;
   }
 
@@ -349,8 +353,15 @@ textarea {
   .form-label-input,
   .form-label-textarea {
     min-height: 40px;
+    max-width: 100%;
     padding: 0.6rem 0.7rem;
     font-size: 13px;
+  }
+
+  input[type="date"].form-label-input {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
   }
 
   .archive-row {
