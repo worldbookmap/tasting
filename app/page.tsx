@@ -254,8 +254,11 @@ function RegionBlockMap({
   if (!items.length) return null;
 
   const visibleItems = hideUnselected && activeId ? items.filter((item) => item.name === activeId) : items;
-  const avgLat = visibleItems.reduce((sum, item) => sum + ((item.center?.[0] ?? ((item.y + item.h / 2) / 100) * 20)), 0) / visibleItems.length;
-  const avgLng = visibleItems.reduce((sum, item) => sum + ((item.center?.[1] ?? ((item.x + item.w / 2) / 100) * 28)), 0) / visibleItems.length;
+  const safeVisibleItems = visibleItems.length ? visibleItems : items;
+  if (!safeVisibleItems.length) return null;
+
+  const avgLat = safeVisibleItems.reduce((sum, item) => sum + ((item.center?.[0] ?? ((item.y + item.h / 2) / 100) * 20)), 0) / safeVisibleItems.length;
+  const avgLng = safeVisibleItems.reduce((sum, item) => sum + ((item.center?.[1] ?? ((item.x + item.w / 2) / 100) * 28)), 0) / safeVisibleItems.length;
   const center: [number, number] = [avgLat, avgLng];
 
   const shouldDim = !!activeId && !hideUnselected;
@@ -682,9 +685,12 @@ const getSavedRegionLabel = (note: Pick<Note, "category" | "regionName" | "disti
 
 const getArchiveRegionMapProps = (note: Pick<Note, "category" | "regionName">) => {
   if (note.category === "wine") {
-    const country = Object.entries(wineBlocksByCountry).find(([, regions]) => regions.some((region) => region.name === note.regionName))?.[0] ?? "프랑스";
+    const matchedCountry = Object.entries(wineBlocksByCountry).find(([, regions]) => regions.some((region) => region.name === note.regionName))?.[0];
+    const country = matchedCountry ?? (Object.keys(wineMapShapes).includes(note.regionName) ? note.regionName : "프랑스");
+    const items = wineBlocksByCountry[country] ?? wineBlocksByCountry["프랑스"];
+
     return {
-      items: wineBlocksByCountry[country] ?? wineBlocksByCountry["프랑스"],
+      items,
       mapShape: wineMapShapes[country] ?? wineMapShapes["프랑스"],
       geoJson: geoJsonCountryShapes[country] ?? geoJsonCountryShapes["프랑스"],
       activeId: note.regionName,
@@ -723,6 +729,9 @@ export default function HomePage() {
   const [selectedCountry, setSelectedCountry] = useState("프랑스");
   const [archiveEditMode, setArchiveEditMode] = useState(false);
   const [archiveDraft, setArchiveDraft] = useState<Note | null>(null);
+  const [calendarSelectedDate, setCalendarSelectedDate] = useState<string | null>(null);
+  const [calendarDetailDate, setCalendarDetailDate] = useState<string | null>(null);
+  const [tagModal, setTagModal] = useState<{ field: "aroma" | "taste" | "finish"; value: string } | null>(null);
 
   const wineCountryOptions = useMemo(
     () => wineCountryGroups.find((group) => group.name === selectedCountryGroup)?.countries ?? ["프랑스"],
@@ -772,6 +781,13 @@ export default function HomePage() {
     return notes.filter((note) => note.date.startsWith(monthKey));
   }, [notes, selectedMonth, selectedYear]);
 
+  const selectedDateNotes = useMemo(() => {
+    if (!calendarSelectedDate) return [];
+    return notes
+      .filter((note) => note.date === calendarSelectedDate)
+      .sort((a, b) => (a.name || a.type).localeCompare(b.name || b.type));
+  }, [calendarSelectedDate, notes]);
+
   const calendarDays = useMemo(() => {
     const total = new Date(selectedYear, selectedMonth + 1, 0).getDate();
     const firstDay = new Date(selectedYear, selectedMonth, 1).getDay();
@@ -789,6 +805,21 @@ export default function HomePage() {
 
   const addTag = (field: "aroma" | "taste" | "finish", value: string) => {
     updateField(field, form[field] ? `${form[field]}, ${value}` : value);
+  };
+
+  const addCustomTagsToField = (field: "aroma" | "taste" | "finish", rawValue: string) => {
+    const parsedTags = rawValue
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+
+    if (!parsedTags.length) return;
+
+    const mergedTags = Array.from(new Set([...(form[field] ? form[field].split(",").map((tag) => tag.trim()).filter(Boolean) : []), ...parsedTags]));
+    updateField(field, mergedTags.join(", "));
+    setTagModal(null);
+    setToastMessage("태그 추가 완료");
+    setShowToast(true);
   };
 
   const handleUpload = (event: React.ChangeEvent<HTMLInputElement>, target: "photo" | "labelPhoto" | "teaLeafPhoto", urlKey: "photoUrl" | "labelPhotoUrl" | "teaLeafUrl") => {
@@ -995,46 +1026,40 @@ export default function HomePage() {
     >
       {view === "landing" && (
         <div className="relative min-h-screen overflow-hidden bg-cover bg-center" style={{ backgroundImage: "url('/assets/bgOpen.jpg')" }}>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(17,10,7,0.34),rgba(17,10,7,0.74))]" />
-          <div className="relative z-10 mx-auto flex min-h-screen max-w-6xl items-center px-3 py-6 sm:px-5 md:px-8 lg:py-10">
-            <div className="grid w-full items-center gap-5 sm:gap-8 md:grid-cols-[1.2fr_0.8fr]">
-              <div className="text-white text-shadow-soft">
-                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[10px] tracking-[0.2em] text-white/80 backdrop-blur-sm sm:text-xs">
-                  <FontAwesomeIcon icon={faBookOpen} />
-                  tasting journal
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(125,82,60,0.24),rgba(48,26,16,0.7),rgba(24,12,8,0.9))]" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(247,222,201,0.08),rgba(255,255,255,0.02))]" />
+          <div className="relative z-10 mx-auto flex min-h-screen max-w-5xl items-center justify-center px-4 py-8 sm:px-6">
+            <div className="w-full max-w-xl text-center text-white">
+              <div className="mb-6 flex items-center justify-center gap-2 text-[9px] tracking-[0.38em] text-white/75 sm:text-[10px]">
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block h-2.5 w-2.5 animate-[bounce_0.9s_ease-in-out_infinite] rounded-full bg-[#f8d7c6]" />
+                  <span className="inline-block h-2.5 w-2.5 animate-[bounce_0.9s_ease-in-out_0.15s_infinite] rounded-full bg-[#f5c7a9]" />
+                  <span className="inline-block h-2.5 w-2.5 animate-[bounce_0.9s_ease-in-out_0.3s_infinite] rounded-full bg-[#efb08a]" />
+                </span>
+                <span className="ml-1">LOADING</span>
+              </div>
+
+              <h1 className="text-[2rem] font-semibold leading-[1.08] tracking-[-0.05em] text-white sm:text-[3rem] md:text-[4rem]">
+                향과 맛으로 삶을 풍족하게 하는 시간
+              </h1>
+
+              <div className="mt-8 flex items-center justify-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-1.5 rounded-full border border-[#f8d9c8]/30 bg-[rgba(255,255,255,0.08)] px-2.5 py-1.5 text-[10px] font-medium text-white/80 backdrop-blur-sm shadow-[0_8px_18px_rgba(93,70,54,0.18)] sm:px-3.5 sm:text-xs">
+                  <span className="text-base">🥃</span>
+                  <span>{stats.whisky}</span>
                 </div>
-                <h1 className="text-[2.6rem] font-semibold leading-[0.96] sm:text-5xl md:text-7xl">기억을 따뜻하게 남기는 노트</h1>
-                <p className="mt-6 max-w-lg text-sm leading-7 text-white/80 sm:text-base md:text-lg md:leading-8">
-                  위스키, 와인, 차를 마실 때마다 풍경과 감정, 향을 남기고 통계로 오래 기억합니다.
-                </p>
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <button type="button" onClick={() => setView("tasting")} className="rounded-full bg-[#f3e3d3] px-5 py-3 text-sm font-medium text-[#2b1e1a] shadow-lg shadow-black/20 sm:px-6">테이스팅 기록하기</button>
-                  <button type="button" onClick={() => setView("archive")} className="rounded-full border border-white/30 bg-white/10 px-5 py-3 text-sm font-medium text-white backdrop-blur-sm sm:px-6">아카이브 보기</button>
+                <div className="flex items-center gap-1.5 rounded-full border border-[#f8d9c8]/30 bg-[rgba(255,255,255,0.08)] px-2.5 py-1.5 text-[10px] font-medium text-white/80 backdrop-blur-sm shadow-[0_8px_18px_rgba(93,70,54,0.18)] sm:px-3.5 sm:text-xs">
+                  <span className="text-base">🍷</span>
+                  <span>{stats.wine}</span>
+                </div>
+                <div className="flex items-center gap-1.5 rounded-full border border-[#f8d9c8]/30 bg-[rgba(255,255,255,0.08)] px-2.5 py-1.5 text-[10px] font-medium text-white/80 backdrop-blur-sm shadow-[0_8px_18px_rgba(93,70,54,0.18)] sm:px-3.5 sm:text-xs">
+                  <span className="text-base">🍵</span>
+                  <span>{stats.tea}</span>
                 </div>
               </div>
 
-              <div className="dark-panel rounded-[28px] p-4 text-white sm:p-5">
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="rounded-2xl bg-white/8 p-4">
-                    <div className="mb-2 text-3xl">🥃</div>
-                    <div className="text-xl font-semibold">{stats.whisky}</div>
-                    <div className="text-xs text-white/70">Whisky</div>
-                  </div>
-                  <div className="rounded-2xl bg-white/8 p-4">
-                    <div className="mb-2 text-3xl">🍷</div>
-                    <div className="text-xl font-semibold">{stats.wine}</div>
-                    <div className="text-xs text-white/70">Wine</div>
-                  </div>
-                  <div className="rounded-2xl bg-white/8 p-4">
-                    <div className="mb-2 text-3xl">🍵</div>
-                    <div className="text-xl font-semibold">{stats.tea}</div>
-                    <div className="text-xs text-white/70">Tea</div>
-                  </div>
-                </div>
-                <div className="mt-5 rounded-2xl bg-white/8 p-4 text-sm leading-7 text-white/80">
-                  <div className="font-semibold text-white">오늘의 감상</div>
-                  잔을 비우는 순간을 기록해 두면, 다음 한 모금의 기준이 됩니다.
-                </div>
+              <div className="mt-8 flex justify-center">
+                <button type="button" onClick={() => setView("tasting")} className="rounded-full bg-[#f8d9c8] px-5 py-2.5 text-sm font-medium text-[#2d1d1a] shadow-[0_12px_26px_rgba(0,0,0,0.2)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#f7cdb5] sm:px-6">입장하기</button>
               </div>
             </div>
           </div>
@@ -1073,10 +1098,7 @@ export default function HomePage() {
                 {view === "tasting" && (
                   <section className="rounded-[24px] border border-white/20 bg-white/35 p-2.5 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm sm:p-3 md:p-6">
                     <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:gap-4 md:flex-row md:items-center md:justify-between">
-                      <div>
-                        <div className="text-[10px] tracking-[0.3em] text-[#6c594f]">CATEGORY</div>
-                        <h2 className="mt-1 text-3xl font-semibold text-[#221d1b]">테이스팅 노트</h2>
-                      </div>
+                      <div className="hidden md:block" aria-hidden="true" />
                       <div className="flex flex-wrap gap-2">
                         {(["whisky", "wine", "tea"] as Category[]).map((item) => (
                           <button key={item} type="button" onClick={() => { setCategory(item); setForm((prev) => ({ ...prev, category: item, type: item === "whisky" ? "싱글몰트" : item === "wine" ? "레드" : "녹차" })); }} className={`premium-button rounded-full px-3 py-1.5 text-[11px] font-medium tracking-[-0.01em] shadow-[0_4px_10px_rgba(136,100,82,0.06)] sm:px-4 sm:py-2 sm:text-[12px] ${category === item ? "bg-[#f9d8c9] text-[#3d2c2a]" : "bg-[#fffaf7] text-[#3d2e2c]"}`}>{categoryLabels[item]}</button>
@@ -1273,19 +1295,19 @@ export default function HomePage() {
                       <div className="grid gap-4 md:grid-cols-3">
                         {(["aroma", "taste", "finish"] as const).map((field) => (
                           <div key={field} className="rounded-2xl border border-[#d9cbb9] bg-white/80 p-3">
-                            <div className="mb-2 flex items-center justify-between text-sm font-semibold text-[#3a2d28]">
+                            <div className="mb-1.5 flex items-center justify-between text-xs font-semibold text-[#3a2d28]">
                               <span>{field === "aroma" ? "향" : field === "taste" ? "맛" : "피니시"}</span>
-                              <span className="text-[10px] text-[#736159]">칩 추가</span>
+                              <button type="button" onClick={() => setTagModal({ field, value: "" })} className="rounded-full border border-white/60 bg-white/25 px-1.5 py-0.5 text-[6px] font-medium tracking-[0.06em] text-[#64534d] shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_2px_7px_rgba(122,92,75,0.04)] backdrop-blur-sm transition-all duration-200 hover:bg-white/35">칩 추가</button>
                             </div>
-                            <div className="mb-2 flex flex-wrap gap-1.5">
-                              {tagOptions.map((tag) => <button key={tag} type="button" onClick={() => addTag(field, tag)} className="premium-tag rounded-full border border-[#f1cfba] bg-[#fff6f2] px-2 py-0.5 text-[9px] font-medium text-[#493a34] leading-none transition-all duration-200 hover:-translate-y-0.5 hover:border-[#e0a986] hover:bg-[#fdeee5]">+ {tag}</button>)}
+                            <div className="mb-1 flex flex-wrap gap-[2px]">
+                              {tagOptions.map((tag) => <button key={tag} type="button" onClick={() => addTag(field, tag)} className="premium-tag rounded-full border border-[#f1cfba] bg-[#fff6f2]/90 px-[4px] py-[2px] text-[2.5px] font-medium text-[#493a34] leading-[1.1] tracking-[-0.02em] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#e0a986] hover:bg-[#fdeee5]">{tag}</button>)}
                             </div>
                             <textarea value={form[field]} onChange={(e) => updateField(field, e.target.value)} className="form-label-textarea" />
                           </div>
                         ))}
                       </div>
 
-                      {(isWine || isTea) && (
+                      {isWine && (
                         <div className="rounded-2xl border border-[#d9cbb9] bg-white/80 p-4">
                           <div className="mb-3 font-semibold text-[#3d3028]">맛 프로필</div>
                           <div className="grid gap-4 md:grid-cols-2">
@@ -1316,10 +1338,7 @@ export default function HomePage() {
                 {view === "archive" && (
                   <section className="archive-doc-shell rounded-[24px] border border-white/20 bg-white/30 p-2.5 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm sm:p-3 md:p-6">
                     <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:gap-4 md:flex-row md:items-center md:justify-between">
-                      <div>
-                        <div className="document-section-label">ARCHIVE</div>
-                        <h2 className="mt-1 text-[1.5rem] font-semibold tracking-[-0.04em] text-[#221d1b] sm:text-[1.85rem]">기록 아카이브</h2>
-                      </div>
+                      <div className="hidden md:block" aria-hidden="true" />
                       <div className="ml-auto flex items-center justify-end gap-3">
                         <div className="flex flex-wrap justify-end gap-2">
                           <button type="button" onClick={() => setArchiveFilter("all")} className={`archive-filter-button ${archiveFilter === "all" ? "bg-[#2a201d] text-white shadow-sm" : "bg-white/70 text-[#2a201d] border-[#eadfce]"}`}>전체</button>
@@ -1395,10 +1414,7 @@ export default function HomePage() {
                 {view === "calendar" && (
                   <section className="rounded-[24px] border border-white/20 bg-white/20 p-2.5 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm sm:p-3 md:p-6">
                     <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:gap-4 md:flex-row md:items-center md:justify-between">
-                      <div>
-                        <div className="text-[10px] tracking-[0.3em] text-[#6c594f]">CALENDAR</div>
-                        <h2 className="mt-1 text-3xl font-semibold text-[#221d1b]">마신 기록 달력</h2>
-                      </div>
+                      <div className="hidden md:block" aria-hidden="true" />
                       <div className="flex gap-2">
                         <button type="button" onClick={() => { const next = new Date(selectedYear, selectedMonth - 1, 1); setSelectedYear(next.getFullYear()); setSelectedMonth(next.getMonth()); }} className="rounded-full bg-white/70 px-3 py-2 text-sm">이전</button>
                         <div className="rounded-full bg-white/70 px-4 py-2 text-sm font-medium">{selectedYear}.{selectedMonth + 1}</div>
@@ -1407,22 +1423,43 @@ export default function HomePage() {
                     </div>
 
                     <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-                      <div className="rounded-[28px] border border-[#e9dfd3] bg-white/70 p-4">
-                        <div className="grid grid-cols-7 gap-2 text-center text-xs font-medium text-[#685950]">
-                          {['일', '월', '화', '수', '목', '금', '토'].map((day) => <div key={day} className="py-2">{day}</div>)}
+                      <div className="rounded-[28px] border border-[#e9dfd3] bg-white/70 p-3 sm:p-4">
+                        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-medium text-[#685950] sm:text-xs">
+                          {['일', '월', '화', '수', '목', '금', '토'].map((day) => <div key={day} className="py-1.5">{day}</div>)}
                         </div>
-                        <div className="mt-2 grid grid-cols-7 gap-2">
+                        <div className="mt-2 grid grid-cols-7 gap-1.5">
                           {calendarDays.map((day, index) => {
                             const dateString = day ? `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}` : "";
                             const dayNotes = day ? notes.filter((note) => note.date === dateString) : [];
+                            const uniqueCategories = Array.from(new Set(dayNotes.map((note) => note.category)));
+
                             return (
-                              <button key={`${day ?? "empty"}-${index}`} type="button" onClick={() => { if (!dayNotes.length) return; setView("archive"); setArchiveFilter("all"); setSearchTerm(dateString); }} className={`relative min-h-24 rounded-2xl border p-2 text-left ${day ? "border-[#e9dccd] bg-[#fffaf7]" : "border-transparent bg-transparent"}`}>
-                                {day && <>
-                                  <div className="text-xs font-semibold text-[#392d28]">{day}</div>
-                                  <div className="mt-2 flex flex-wrap gap-1">
-                                    {dayNotes.slice(0, 2).map((note) => <span key={note.id} title={categoryLabels[note.category]} className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${note.category === "whisky" ? "bg-[#d8c0a0]" : note.category === "wine" ? "bg-[#e9d2d4]" : "bg-[#d4e0c8]"}`}>{note.category === "whisky" ? "🥃" : note.category === "wine" ? "🍷" : "🍵"}</span>)}
+                              <button
+                                key={`${day ?? "empty"}-${index}`}
+                                type="button"
+                                onClick={() => {
+                                  if (!dayNotes.length) return;
+                                  setCalendarSelectedDate(dateString);
+                                  setCalendarDetailDate(dateString);
+                                }}
+                                className={`relative min-h-[88px] rounded-[16px] border p-1.5 text-left transition-all sm:min-h-[96px] ${day ? (calendarSelectedDate === dateString ? "border-[#d29774] bg-[#fff6f1] shadow-[0_6px_12px_rgba(116,87,69,0.08)]" : "border-[#e9dccd] bg-[#fffaf7]") : "border-transparent bg-transparent"}`}
+                              >
+                                {day && (
+                                  <div className="flex h-full flex-col items-center justify-center">
+                                    <span className="text-[11px] font-semibold text-[#392d28]">{day}</span>
+                                    <div className="mt-1 flex min-h-[22px] items-center justify-center gap-1.5">
+                                      {uniqueCategories.length > 0 ? uniqueCategories.map((category) => (
+                                        <span
+                                          key={`${dateString}-${category}`}
+                                          title={categoryLabels[category]}
+                                          className={`inline-flex h-5 w-5 items-center justify-center rounded-full border border-transparent text-[9px] ${category === "whisky" ? "bg-[#e8d8bd] text-[#4b3b2f]" : category === "wine" ? "bg-[#f0dfe0] text-[#4d3535]" : "bg-[#dfead5] text-[#2f4631]"}`}
+                                        >
+                                          {category === "whisky" ? "🥃" : category === "wine" ? "🍷" : "🍵"}
+                                        </span>
+                                      )) : <span className="h-5 w-5" aria-hidden="true" />}
+                                    </div>
                                   </div>
-                                </>}
+                                )}
                               </button>
                             );
                           })}
@@ -1440,9 +1477,20 @@ export default function HomePage() {
                         </div>
 
                         <div className="rounded-[28px] border border-[#e9dfd3] bg-white/70 p-4">
-                          <div className="mb-3 text-sm font-semibold text-[#382d28]">이 달의 기록</div>
+                          <div className="mb-3 text-sm font-semibold text-[#382d28]">{calendarSelectedDate ? `${calendarSelectedDate.replace(/-/g, ".")} 기록` : "이 달의 기록"}</div>
                           <div className="space-y-2">
-                            {monthNotes.length ? monthNotes.slice(0, 6).map((note) => (
+                            {calendarSelectedDate && selectedDateNotes.length ? selectedDateNotes.map((note) => (
+                              <button key={note.id} type="button" onClick={() => setSelectedNote(note)} className="flex w-full items-center justify-between gap-2 rounded-2xl bg-[#f9f4ef] px-2.5 py-2 text-left transition hover:bg-[#f3e8e1]">
+                                <div className="flex min-w-0 items-center gap-2">
+                                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-[#eedbc8] bg-white text-[11px]">{note.category === "whisky" ? "🥃" : note.category === "wine" ? "🍷" : "🍵"}</span>
+                                  <div className="min-w-0">
+                                    <div className="truncate text-[11px] font-medium text-[#3a2f2d]">{note.name || note.type || "기록"}</div>
+                                    <div className="truncate text-[9px] text-[#7a645d]">{note.place || note.type || "기록"}</div>
+                                  </div>
+                                </div>
+                                <span className="shrink-0 text-[8px] uppercase tracking-[0.12em] text-[#7a645d]">{categoryLabels[note.category]}</span>
+                              </button>
+                            )) : monthNotes.length ? monthNotes.slice(0, 6).map((note) => (
                               <button key={note.id} type="button" onClick={() => setSelectedNote(note)} className="flex w-full items-center justify-between rounded-2xl bg-[#f9f4ef] px-3 py-2 text-left">
                                 <span className="text-sm text-[#3a2f2d]">{note.name || note.type}</span>
                                 <span className="text-[10px] text-[#7a645d]">{categoryLabels[note.category]}</span>
@@ -1455,6 +1503,37 @@ export default function HomePage() {
                   </section>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {calendarDetailDate && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#1a130f]/55 p-4 backdrop-blur-[2px]" onClick={() => setCalendarDetailDate(null)}>
+          <div className="w-full max-w-md overflow-hidden rounded-[30px] border border-[#ebddd0] bg-[#fffaf6] shadow-[0_26px_60px_rgba(72,52,42,0.16)]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between gap-3 border-b border-[#f0e3d8] bg-[linear-gradient(180deg,#fffaf6,#f5ece5)] px-4 py-3">
+              <div>
+                <div className="text-[9px] tracking-[0.22em] text-[#7e665d] uppercase">Drinks</div>
+                <div className="mt-1 text-sm font-semibold text-[#2b201d]">{calendarDetailDate.replace(/-/g, ".")} 기록</div>
+              </div>
+              <button type="button" onClick={() => setCalendarDetailDate(null)} className="document-button document-button--ghost h-8 min-h-0 px-2.5 py-1 text-[10px]">닫기</button>
+            </div>
+            <div className="max-h-[70vh] space-y-2 overflow-auto p-4">
+              {selectedDateNotes.length ? selectedDateNotes.map((note) => (
+                <button key={note.id} type="button" onClick={() => {
+                  setSelectedNote(note);
+                  setCalendarDetailDate(null);
+                }} className="flex w-full items-center justify-between gap-2 rounded-2xl border border-[#f0e2d5] bg-[#f9f4ef] px-3 py-2.5 text-left transition hover:bg-[#f3e8e1]">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#eedbc8] bg-white text-[12px]">{note.category === "whisky" ? "🥃" : note.category === "wine" ? "🍷" : "🍵"}</span>
+                    <div className="min-w-0">
+                      <div className="truncate text-[12px] font-medium text-[#3a2f2d]">{note.name || note.type || "기록"}</div>
+                      <div className="truncate text-[10px] text-[#7a645d]">{note.place || note.type || "기록"}</div>
+                    </div>
+                  </div>
+                  <span className="shrink-0 text-[8px] uppercase tracking-[0.12em] text-[#7a645d]">{categoryLabels[note.category]}</span>
+                </button>
+              )) : <div className="rounded-2xl bg-[#f9f4ef] p-4 text-sm text-[#5d4d47]">이 날짜의 기록이 없습니다.</div>}
             </div>
           </div>
         </div>
@@ -1754,7 +1833,7 @@ export default function HomePage() {
                   </label>
                 </div>
 
-                {(archiveDraft.category === "wine" || archiveDraft.category === "tea") && (
+                {archiveDraft.category === "wine" && (
                   <div className="document-section-surface p-4">
                     <div className="mb-3 font-semibold text-[#3d3028]">맛 프로필</div>
                     <div className="grid gap-4 md:grid-cols-2">
@@ -1914,6 +1993,32 @@ export default function HomePage() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {tagModal && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[#1a130f]/60 p-4 backdrop-blur-[2px]" onClick={() => setTagModal(null)}>
+          <div className="w-full max-w-md overflow-hidden rounded-[28px] border border-[#ebddd0] bg-[#fffaf6] shadow-[0_26px_60px_rgba(72,52,42,0.16)]" onClick={(e) => e.stopPropagation()}>
+            <div className="border-b border-[#f0e3d8] bg-[linear-gradient(180deg,#fffaf6,#f5ece5)] px-4 py-3">
+              <div className="text-[9px] tracking-[0.22em] text-[#7e665d] uppercase">Custom Tag</div>
+              <div className="mt-1 text-base font-semibold text-[#2b201d]">{tagModal.field === "aroma" ? "향" : tagModal.field === "taste" ? "맛" : "피니시"} 태그 추가</div>
+            </div>
+            <div className="space-y-4 p-4">
+              <label className="block text-sm text-[#4b3c35]">
+                <span className="mb-2 block">콤마(,)로 여러 태그를 입력하세요</span>
+                <textarea
+                  value={tagModal.value}
+                  onChange={(e) => setTagModal((prev) => prev ? { ...prev, value: e.target.value } : prev)}
+                  placeholder="오크, 바닐라, 블랙체리"
+                  className="form-label-textarea min-h-[120px]"
+                />
+              </label>
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setTagModal(null)} className="document-button document-button--ghost min-h-0 px-3 py-1.75 text-[10px]">취소</button>
+                <button type="button" onClick={() => addCustomTagsToField(tagModal.field, tagModal.value)} className="document-button document-button--primary min-h-0 px-3 py-1.75 text-[10px]">추가하기</button>
+              </div>
+            </div>
           </div>
         </div>
       )}
