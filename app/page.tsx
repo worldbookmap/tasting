@@ -965,20 +965,20 @@ export default function HomePage() {
       {view === "landing" && (
         <div className="relative min-h-screen overflow-hidden bg-cover bg-center" style={{ backgroundImage: "url('/assets/bgOpen.jpg')" }}>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(17,10,7,0.34),rgba(17,10,7,0.74))]" />
-          <div className="relative z-10 mx-auto flex min-h-screen max-w-6xl items-center px-6 py-10">
-            <div className="grid w-full items-center gap-8 md:grid-cols-[1.2fr_0.8fr]">
+          <div className="relative z-10 mx-auto flex min-h-screen max-w-6xl items-center px-3 py-6 sm:px-5 md:px-8 lg:py-10">
+            <div className="grid w-full items-center gap-5 sm:gap-8 md:grid-cols-[1.2fr_0.8fr]">
               <div className="text-white text-shadow-soft">
-                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs tracking-[0.2em] text-white/80 backdrop-blur-sm">
+                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[10px] tracking-[0.2em] text-white/80 backdrop-blur-sm sm:text-xs">
                   <FontAwesomeIcon icon={faBookOpen} />
                   tasting journal
                 </div>
-                <h1 className="text-5xl font-semibold leading-none md:text-7xl">기억을 따뜻하게 남기는 노트</h1>
-                <p className="mt-6 max-w-lg text-base leading-8 text-white/80 md:text-lg">
+                <h1 className="text-[2.6rem] font-semibold leading-[0.96] sm:text-5xl md:text-7xl">기억을 따뜻하게 남기는 노트</h1>
+                <p className="mt-6 max-w-lg text-sm leading-7 text-white/80 sm:text-base md:text-lg md:leading-8">
                   위스키, 와인, 차를 마실 때마다 풍경과 감정, 향을 남기고 통계로 오래 기억합니다.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-3">
-                  <button type="button" onClick={() => setView("tasting")} className="rounded-full bg-[#f3e3d3] px-6 py-3 font-medium text-[#2b1e1a] shadow-lg shadow-black/20">테이스팅 기록하기</button>
-                  <button type="button" onClick={() => setView("archive")} className="rounded-full border border-white/30 bg-white/10 px-6 py-3 font-medium text-white backdrop-blur-sm">아카이브 보기</button>
+                  <button type="button" onClick={() => setView("tasting")} className="rounded-full bg-[#f3e3d3] px-5 py-3 text-sm font-medium text-[#2b1e1a] shadow-lg shadow-black/20 sm:px-6">테이스팅 기록하기</button>
+                  <button type="button" onClick={() => setView("archive")} className="rounded-full border border-white/30 bg-white/10 px-5 py-3 text-sm font-medium text-white backdrop-blur-sm sm:px-6">아카이브 보기</button>
                 </div>
               </div>
 
@@ -1011,10 +1011,10 @@ export default function HomePage() {
       )}
 
       {view !== "landing" && (
-        <div className="min-h-screen px-4 py-6 md:px-8">
+        <div className="min-h-screen px-2 py-4 sm:px-3 md:px-8 md:py-6">
           <div className="mx-auto max-w-[1280px] overflow-hidden rounded-[32px] border border-white/30 shadow-[0_30px_60px_rgba(46,31,25,0.16)]" style={{ background: "transparent", border: "none", boxShadow: "none" }}>
-            <div className="p-4 md:p-6">
-              <header className="rounded-[26px] border border-white/25 px-4 py-3 text-[#281d18] shadow-[0_18px_36px_rgba(68,50,42,0.08),inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-xl md:px-6" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.24), rgba(245,236,230,0.16))" }}>
+            <div className="p-3 sm:p-4 md:p-6">
+              <header className="rounded-[26px] border border-white/25 px-3 py-3 text-[#281d18] shadow-[0_18px_36px_rgba(68,50,42,0.08),inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-xl sm:px-4 md:px-6" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.24), rgba(245,236,230,0.16))" }}>
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e5d5c8] bg-[linear-gradient(180deg,#f9f3ef,#e9d7c8)] text-[#4d382e] shadow-[0_6px_14px_rgba(101,77,64,0.12)]"><FontAwesomeIcon icon={faGlassCheers} className="text-sm" /></div>
@@ -1023,14 +1023,14 @@ export default function HomePage() {
                       <div className="brand-script mt-1 text-[2.1rem] leading-[0.9] tracking-[0.04em] text-[#2d201d] md:text-[2.5rem]">A Slow, Lovely Pour</div>
                     </div>
                   </div>
-                  <nav className="flex flex-nowrap items-center gap-2 overflow-hidden">
+                  <nav className="flex w-full flex-nowrap items-center justify-start gap-1.5 overflow-x-auto scrollbar-none md:w-auto md:justify-end md:gap-2">
                     {[
                       { key: "tasting", label: "Tasting Note", icon: faBookOpen },
                       { key: "archive", label: "Archive", icon: faSearch },
                       { key: "calendar", label: "Calendar", icon: faCalendarAlt },
                     ].map((item) => (
-                      <button key={item.key} type="button" onClick={() => setView(item.key as "tasting" | "archive" | "calendar")} className={`inline-flex min-w-0 shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200 ${view === item.key ? "border-[#3b2a25] bg-[#2a201d] text-[#f4efe9] shadow-[0_8px_18px_rgba(42,32,29,0.2)]" : "border-[#e6d8cb] bg-white/45 text-[#2a201d] hover:bg-white/60"}`}>
-                        <FontAwesomeIcon icon={item.icon} className="shrink-0" />
+                      <button key={item.key} type="button" onClick={() => setView(item.key as "tasting" | "archive" | "calendar")} className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-2 text-[10.5px] font-medium transition-all duration-200 sm:px-3.5 sm:text-[11px] md:px-4 md:text-sm ${view === item.key ? "border-[#3b2a25] bg-[#2a201d] text-[#f4efe9] shadow-[0_8px_18px_rgba(42,32,29,0.2)]" : "border-[#e6d8cb] bg-white/45 text-[#2a201d] hover:bg-white/60"}`}>
+                        <FontAwesomeIcon icon={item.icon} className="shrink-0 text-[10px] md:text-[12px]" />
                         <span className="truncate">{item.label}</span>
                       </button>
                     ))}
@@ -1040,7 +1040,7 @@ export default function HomePage() {
 
               <div className="mt-6 space-y-6">
                 {view === "tasting" && (
-                  <section className="rounded-[28px] border border-white/20 bg-white/20 p-4 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm md:p-6">
+                  <section className="rounded-[28px] border border-white/20 bg-white/20 p-3 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm sm:p-4 md:p-6">
                     <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                       <div>
                         <div className="text-[10px] tracking-[0.3em] text-[#6c594f]">CATEGORY</div>
@@ -1048,13 +1048,13 @@ export default function HomePage() {
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {(["whisky", "wine", "tea"] as Category[]).map((item) => (
-                          <button key={item} type="button" onClick={() => { setCategory(item); setForm((prev) => ({ ...prev, category: item, type: item === "whisky" ? "싱글몰트" : item === "wine" ? "레드" : "녹차" })); }} className={`premium-button rounded-full px-4 py-2 text-[12px] font-medium tracking-[-0.01em] shadow-[0_4px_10px_rgba(136,100,82,0.06)] ${category === item ? "bg-[#f9d8c9] text-[#3d2c2a]" : "bg-[#fffaf7] text-[#3d2e2c]"}`}>{categoryLabels[item]}</button>
+                          <button key={item} type="button" onClick={() => { setCategory(item); setForm((prev) => ({ ...prev, category: item, type: item === "whisky" ? "싱글몰트" : item === "wine" ? "레드" : "녹차" })); }} className={`premium-button rounded-full px-3 py-1.5 text-[11px] font-medium tracking-[-0.01em] shadow-[0_4px_10px_rgba(136,100,82,0.06)] sm:px-4 sm:py-2 sm:text-[12px] ${category === item ? "bg-[#f9d8c9] text-[#3d2c2a]" : "bg-[#fffaf7] text-[#3d2e2c]"}`}>{categoryLabels[item]}</button>
                         ))}
                       </div>
                     </div>
 
                     <div className="space-y-5">
-                      <div className="grid gap-3 md:grid-cols-2">
+                      <div className="grid gap-2.5 md:grid-cols-2 md:gap-3">
                         <label className="form-label-row">
                           <span>마신날</span>
                           <input type="date" value={form.date} onChange={(e) => updateField("date", e.target.value)} className="form-label-input" />
@@ -1283,11 +1283,11 @@ export default function HomePage() {
                 )}
 
                 {view === "archive" && (
-                  <section className="archive-doc-shell rounded-[28px] border border-white/20 bg-white/30 p-4 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm md:p-6">
-                    <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <section className="archive-doc-shell rounded-[28px] border border-white/20 bg-white/30 p-3 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm sm:p-4 md:p-6">
+                    <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:gap-4 md:flex-row md:items-center md:justify-between">
                       <div>
                         <div className="document-section-label">ARCHIVE</div>
-                        <h2 className="mt-1 text-[1.85rem] font-semibold tracking-[-0.04em] text-[#221d1b]">기록 아카이브</h2>
+                        <h2 className="mt-1 text-[1.5rem] font-semibold tracking-[-0.04em] text-[#221d1b] sm:text-[1.85rem]">기록 아카이브</h2>
                       </div>
                       <div className="ml-auto flex items-center justify-end gap-3">
                         <div className="flex flex-wrap justify-end gap-2">
@@ -1301,13 +1301,13 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    <div className="mb-5 flex items-center gap-2 rounded-2xl border border-[#e8d9c9] bg-white/70 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+                    <div className="mb-4 flex items-center gap-2 rounded-2xl border border-[#e8d9c9] bg-white/70 px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] sm:mb-5 sm:px-3">
                       <FontAwesomeIcon icon={faSearch} className="text-[#695953]" />
                       <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="이름, 장소, 메모, 증류소 검색" className="w-full bg-transparent text-sm outline-none placeholder:text-[#8b766b]" />
                     </div>
 
                     {archiveViewMode === "card" ? (
-                      <div className="grid gap-3 lg:grid-cols-2">
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
                         {filteredNotes.length ? filteredNotes.map((note) => (
                           <div key={note.id} className="archive-card w-full p-3 text-left transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_rgba(63,47,37,0.08)]">
                             <button type="button" onClick={() => setSelectedNote(note)} className="w-full text-left">
@@ -1337,21 +1337,22 @@ export default function HomePage() {
                     ) : (
                       <div className="overflow-hidden rounded-[20px] border border-[#efe2d7] bg-white/60">
                         {filteredNotes.length ? filteredNotes.map((note) => (
-                          <button key={note.id} type="button" onClick={() => setSelectedNote(note)} className="archive-row grid w-full grid-cols-[42px_minmax(0,1.7fr)_minmax(0,1.1fr)_minmax(0,1fr)_auto] items-center gap-2 text-left last:border-b-0 hover:bg-white/40">
-                            <div className="h-9 w-9 overflow-hidden rounded-lg bg-[#efe3d4]">
+                          <button key={note.id} type="button" onClick={() => setSelectedNote(note)} className="archive-row grid w-full grid-cols-[30px_minmax(0,1.7fr)_auto] items-center gap-2 text-left last:border-b-0 hover:bg-white/40 sm:grid-cols-[42px_minmax(0,1.7fr)_minmax(0,1.1fr)_minmax(0,1fr)_auto]">
+                            <div className="h-8 w-8 overflow-hidden rounded-lg bg-[#efe3d4] sm:h-9 sm:w-9">
                               {note.photo || note.photoUrl ? (
                                 <div className="relative h-full w-full">
                                   <Image src={note.photo || note.photoUrl} alt={note.name} fill unoptimized className="object-cover" />
                                 </div>
                               ) : (
-                                <div className="flex h-full items-center justify-center text-sm text-[#9a7b5f]">{note.category === "whisky" ? "🥃" : note.category === "wine" ? "🍷" : "🍵"}</div>
+                                <div className="flex h-full items-center justify-center text-xs text-[#9a7b5f] sm:text-sm">{note.category === "whisky" ? "🥃" : note.category === "wine" ? "🍷" : "🍵"}</div>
                               )}
                             </div>
                             <div className="min-w-0">
-                              <div className="truncate text-[13.5px] font-medium tracking-[-0.01em] text-[#2a201d]">{note.name || "미기록"}</div>
+                              <div className="truncate text-[12.5px] font-medium tracking-[-0.01em] text-[#2a201d] sm:text-[13.5px]">{note.name || "미기록"}</div>
+                              <div className="mt-0.5 truncate text-[9px] text-[#77655f] sm:hidden">{note.type || "종류 미기록"} · {formatDate(note.date)}</div>
                             </div>
-                            <div className="truncate text-[11px] text-[#5f4d46]">{note.type || "종류 미기록"}</div>
-                            <div className="truncate text-[11px] text-[#5f4d46]">{formatDate(note.date)}</div>
+                            <div className="hidden text-[11px] text-[#5f4d46] sm:block">{note.type || "종류 미기록"}</div>
+                            <div className="hidden text-[11px] text-[#5f4d46] sm:block">{formatDate(note.date)}</div>
                             <div className="text-right text-[8px] font-medium uppercase tracking-[0.12em] text-[#73615d]">{categoryLabels[note.category]}</div>
                           </button>
                         )) : <div className="p-8 text-center text-[#5d4d47]">아직 저장된 기록이 없습니다.</div>}
@@ -1361,7 +1362,7 @@ export default function HomePage() {
                 )}
 
                 {view === "calendar" && (
-                  <section className="rounded-[28px] border border-white/20 bg-white/20 p-4 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm md:p-6">
+                  <section className="rounded-[28px] border border-white/20 bg-white/20 p-3 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm sm:p-4 md:p-6">
                     <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                       <div>
                         <div className="text-[10px] tracking-[0.3em] text-[#6c594f]">CALENDAR</div>
