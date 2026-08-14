@@ -1,14 +1,19 @@
+@import url("https://fonts.googleapis.com/css2?family=Petit+Formal+Script&family=Noto+Serif+KR:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
 :root {
-  --background: #f5efe7;
-  --foreground: #1f1b17;
-  --card: rgba(255, 255, 255, 0.75);
-  --panel: rgba(33, 28, 24, 0.62);
-  --muted: #6c625d;
-  --line: rgba(80, 67, 56, 0.14);
-  --shadow: rgba(27, 18, 12, 0.14);
+  --background: #fdf5f1;
+  --foreground: #2e221f;
+  --card: rgba(255, 255, 255, 0.8);
+  --panel: rgba(73, 54, 47, 0.7);
+  --muted: #856e65;
+  --line: rgba(144, 117, 103, 0.16);
+  --shadow: rgba(108, 75, 62, 0.1);
+  --peach: #f9d9c8;
+  --rose: #f7d6d1;
+  --dusty: #f8efe9;
+  --gold: #e6c4a1;
 }
 
 @theme inline {
@@ -24,10 +29,25 @@ html {
 
 body {
   background:
-    radial-gradient(circle at top, rgba(155, 123, 89, 0.12), transparent 32%),
+    radial-gradient(circle at top, rgba(249, 208, 190, 0.2), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(247, 214, 209, 0.28), transparent 28%),
     var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, sans-serif;
+  font-size: 14px;
+}
+
+.brand-script {
+  font-family: "Petit Formal Script", "Segoe Script", cursive;
+}
+
+.user-serif,
+input.user-serif,
+textarea.user-serif,
+select.user-serif,
+.user-serif-text {
+  font-family: "Noto Serif KR", Georgia, serif;
+  font-size: 0.94em;
 }
 
 * {
@@ -39,6 +59,101 @@ input,
 select,
 textarea {
   font: inherit;
+  font-size: 14px;
+}
+
+input,
+select,
+textarea {
+  font-family: "Noto Serif KR", Georgia, serif;
+  font-size: 0.92em;
+}
+
+.form-label-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 44px;
+  width: 100%;
+  padding: 0.15rem 0;
+}
+
+.form-label-row > span {
+  display: inline-flex;
+  align-items: center;
+  min-width: 76px;
+  flex-shrink: 0;
+  font-size: 12.5px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-weight: 600;
+  color: #3f312d;
+}
+
+.form-label-row > *:not(span) {
+  flex: 1;
+  min-width: 0;
+}
+
+.form-label-input,
+.form-label-textarea {
+  width: 100%;
+  min-height: 40px;
+  border-radius: 14px;
+  border: 1px solid #f0d9cc;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.7rem 0.85rem;
+  outline: none;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease, transform 180ms ease;
+}
+
+.form-label-input:focus,
+.form-label-textarea:focus {
+  border-color: #d9a37c;
+  box-shadow: 0 0 0 4px rgba(217, 163, 124, 0.12);
+  transform: translateY(-1px);
+}
+
+.form-label-textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.premium-tag,
+.premium-button,
+.premium-filter {
+  font-family: "Noto Serif KR", Georgia, serif;
+  letter-spacing: -0.01em;
+}
+
+.premium-button {
+  transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+}
+
+.premium-button:hover {
+  transform: translateY(-1px);
+  filter: saturate(1.05);
+}
+
+.custom-select-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 99, 82, 0.4) transparent;
+  border-top: 1px solid rgba(221, 205, 191, 0.9);
+}
+
+.custom-select-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-select-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-select-scroll::-webkit-scrollbar-thumb {
+  background: rgba(124, 99, 82, 0.36);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
 }
 
 .leaflet-container {
@@ -62,9 +177,10 @@ textarea {
 }
 
 .glass-panel {
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(231, 203, 188, 0.72);
   backdrop-filter: blur(10px);
-  box-shadow: 0 18px 45px rgba(45, 31, 19, 0.08);
+  box-shadow: 0 12px 28px rgba(99, 68, 55, 0.06);
 }
 
 .dark-panel {

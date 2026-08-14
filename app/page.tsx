@@ -1,8 +1,10 @@
 "use client";
 
-import Image from "next/image";
+import "leaflet/dist/leaflet.css";
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { FeatureCollection, GeoJsonObject } from "geojson";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBookOpen,
@@ -10,55 +12,309 @@ import {
   faCamera,
   faCheck,
   faGlassCheers,
+  faList,
   faPen,
   faSearch,
+  faTableCellsLarge,
   faTrash,
   faUpload,
 } from "@fortawesome/free-solid-svg-icons";
-import type { LatLngExpression } from "leaflet";
 import distilleries from "@/assets/distillery.json";
 
-const DynamicMap = dynamic(
-  async () => {
-    const { MapContainer, Marker, Popup, TileLayer } = await import("react-leaflet");
+type RegionBlock = {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  center?: [number, number];
+};
 
-    return function MapRenderer({
+const LeafletMap = dynamic(
+  async () => {
+    const mod = await import("react-leaflet");
+    const MapController = ({ center, zoom }: { center: [number, number]; zoom: number }) => {
+      const map = mod.useMap();
+      useEffect(() => {
+        map.flyTo(center, zoom, { duration: 1.2 });
+      }, [map, center, zoom]);
+      return null;
+    };
+
+    return function LeafletMapInner({
       center,
-      zoom = 5,
-      markers,
-      selectedName,
-      fallbackLabel,
+      zoom,
+      children,
+      className,
+      ...props
     }: {
-      center: LatLngExpression;
-      zoom?: number;
-      markers?: { name: string; center: [number, number] }[];
-      selectedName?: string;
-      fallbackLabel?: string;
+      center: [number, number];
+      zoom: number;
+      children: React.ReactNode;
+      className?: string;
+      [key: string]: unknown;
     }) {
       return (
-        <MapContainer center={center} zoom={zoom} scrollWheelZoom={false} className="h-full w-full">
-          <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          {(markers ?? []).map((marker) => (
-            <Marker key={marker.name} position={marker.center as LatLngExpression}>
-              <Popup>{marker.name}</Popup>
-            </Marker>
-          ))}
-          {selectedName && (
-            <Marker position={center as LatLngExpression}>
-              <Popup>{selectedName}</Popup>
-            </Marker>
-          )}
-          {!selectedName && fallbackLabel && (
-            <Marker position={center as LatLngExpression}>
-              <Popup>{fallbackLabel}</Popup>
-            </Marker>
-          )}
-        </MapContainer>
+        <mod.MapContainer center={center} zoom={zoom} className={className ? `relative ${className}` : "relative"} {...props}>
+          {children}
+          <MapController center={center} zoom={zoom} />
+        </mod.MapContainer>
       );
     };
   },
   { ssr: false },
 );
+
+const LeafletTileLayer = dynamic(
+  async () => (await import("react-leaflet")).TileLayer,
+  { ssr: false },
+);
+
+const LeafletCircleMarker = dynamic(
+  async () => (await import("react-leaflet")).CircleMarker,
+  { ssr: false },
+);
+
+const LeafletRectangle = dynamic(
+  async () => (await import("react-leaflet")).Rectangle,
+  { ssr: false },
+);
+
+const LeafletGeoJSON = dynamic(
+  async () => (await import("react-leaflet")).GeoJSON,
+  { ssr: false },
+);
+
+const LeafletMarker = dynamic(
+  async () => (await import("react-leaflet")).Marker,
+  { ssr: false },
+);
+
+let leafletDivIconFactory: ((options: Record<string, unknown>) => unknown) | null = null;
+
+if (typeof window !== "undefined") {
+  import("leaflet").then((module) => {
+    leafletDivIconFactory = module.divIcon;
+  }).catch(() => {
+    leafletDivIconFactory = null;
+  });
+}
+
+const getRegionLabelPalette = (label: string) => {
+  const palettes = [
+    { bg: "#f8efe7", border: "#b67d56" },
+    { bg: "#eef7ef", border: "#6d9a74" },
+    { bg: "#edf3fb", border: "#648cc5" },
+    { bg: "#f7ecf7", border: "#9b6eb3" },
+    { bg: "#fdf0e3", border: "#d18d5d" },
+    { bg: "#eefaf9", border: "#5f9e97" },
+  ];
+
+  let hash = 0;
+  for (let i = 0; i < label.length; i += 1) {
+    hash = label.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  return palettes[Math.abs(hash) % palettes.length];
+};
+
+const createBlockLabelIcon = (label: string, isActive = false) => {
+  if (!leafletDivIconFactory || typeof window === "undefined") return undefined;
+  const palette = getRegionLabelPalette(label);
+  const background = isActive ? "rgba(255,250,247,0.98)" : palette.bg;
+  const border = isActive ? "#6b342a" : palette.border;
+  const shadow = isActive
+    ? "0 0 0 3px rgba(214,157,119,0.18), 0 8px 16px rgba(26,18,15,0.18)"
+    : "0 2px 8px rgba(26,18,15,0.08)";
+
+  const icon = leafletDivIconFactory({
+    className: "region-label-icon",
+    html: `<div style="display:flex;align-items:center;justify-content:center;min-width:60px;padding:3px 8px;border-radius:999px;background:${background};border:1.5px solid ${border};box-shadow:${shadow};color:#3c2d26;font-size:9px;font-weight:700;letter-spacing:-0.02em;line-height:1.2;transform:${isActive ? "translateY(-4px) scale(1.1)" : "translateY(0) scale(1)"};transition:transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;filter:${isActive ? "drop-shadow(0 4px 6px rgba(90,42,34,0.18))" : "none"};">${label}</div>`,
+    iconSize: [78, 24],
+    iconAnchor: [39, 12],
+  });
+  return icon as unknown as ReturnType<typeof import("leaflet").divIcon> | undefined;
+};
+
+function CustomSelect<T extends string>({
+  value,
+  options,
+  onChange,
+  placeholder,
+}: {
+  value: T | "";
+  options: readonly T[];
+  onChange: (value: T) => void;
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative w-full">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex min-h-[40px] w-full items-center justify-between rounded-[14px] border border-[#f4d7c8] bg-[#fffaf9]/90 px-3 py-2 text-left text-[12.5px] text-[#2d2522] shadow-[0_4px_12px_rgba(130,96,79,0.05)] transition-all duration-200 hover:border-[#e6b69d] hover:shadow-[0_8px_18px_rgba(130,96,79,0.07)] focus:outline-none"
+      >
+        <div className="flex min-w-0 items-center gap-2">
+          {value ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#fce9e3] px-1.5 py-0.5 text-[9px] font-medium tracking-[0.12em] text-[#5c463f]">
+              <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#e7a68c] text-[7px] text-white shadow-sm">✓</span>
+              {value}
+            </span>
+          ) : (
+            <span className="text-[#86756d]">{placeholder || "선택"}</span>
+          )}
+        </div>
+        <svg viewBox="0 0 20 20" fill="none" className={`h-4 w-4 text-[#584b45] transition-transform duration-200 ${open ? "rotate-180" : ""}`} aria-hidden="true">
+          <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="custom-select-scroll absolute left-0 right-0 top-full z-30 mt-2 max-h-64 overflow-y-auto rounded-[18px] border border-[#e7d9c8] bg-[rgba(255,250,247,0.98)] shadow-[0_18px_40px_rgba(58,42,33,0.12)] backdrop-blur-sm">
+          {options.map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => {
+                onChange(option);
+                setOpen(false);
+              }}
+              className={`group flex w-full items-center justify-between px-3 py-2 text-left text-[11.5px] transition-all duration-200 ${value === option ? "bg-[#fbe7db] text-[#2d201d]" : "text-[#4b3c35] hover:bg-[#fff5ee] hover:translate-x-0.5"}`}
+            >
+              <span className="flex items-center gap-2">
+                <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full border text-[8px] transition-all ${value === option ? "border-[#9b6d48] bg-[#9b6d48] text-white shadow-sm" : "border-[#d4b89f] bg-white text-transparent group-hover:border-[#c59d7a]"}`}>
+                  ✓
+                </span>
+                {option}
+              </span>
+              {value === option && <span className="text-[8px] font-semibold tracking-[0.12em] text-[#725b4e]">선택됨</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WhiskyPinMap({ distillery }: { distillery: Distillery | null }) {
+  if (!distillery) return null;
+
+  return (
+    <div className="h-64 w-full overflow-hidden rounded-2xl border border-[#d5c2a5]">
+      <LeafletMap center={[distillery.latitude, distillery.longitude]} zoom={5} scrollWheelZoom={false} className="h-full w-full" attributionControl={false}>
+        <LeafletTileLayer
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; OpenStreetMap contributors &copy; CARTO'
+        />
+        <LeafletCircleMarker
+          center={[distillery.latitude, distillery.longitude]}
+          radius={10}
+          pathOptions={{ color: "#d95f48", fillColor: "#d95f48", fillOpacity: 1 }}
+        />
+      </LeafletMap>
+    </div>
+  );
+}
+
+function RegionBlockMap({
+  items,
+  activeId,
+  onSelect,
+  showMap = false,
+  mapShape,
+  geoJson,
+}: {
+  items: RegionBlock[];
+  activeId?: string;
+  onSelect: (name: string) => void;
+  showMap?: boolean;
+  mapShape?: string;
+  geoJson?: GeoJsonObject;
+}) {
+  if (!items.length) return null;
+
+  const avgLat = items.reduce((sum, item) => sum + ((item.center?.[0] ?? ((item.y + item.h / 2) / 100) * 20)), 0) / items.length;
+  const avgLng = items.reduce((sum, item) => sum + ((item.center?.[1] ?? ((item.x + item.w / 2) / 100) * 28)), 0) / items.length;
+  const center: [number, number] = [avgLat, avgLng];
+
+  return (
+    <div className="h-64 w-full overflow-hidden rounded-2xl border border-[#d5c2a5]">
+      <LeafletMap center={center} zoom={4} scrollWheelZoom={false} className="h-full w-full" attributionControl={false}>
+        <LeafletTileLayer
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; OpenStreetMap contributors &copy; CARTO'
+        />
+        {geoJson && (
+          <LeafletGeoJSON
+            data={geoJson}
+            style={() => ({
+              color: "transparent",
+              weight: 0,
+              fillColor: "transparent",
+              fillOpacity: 0,
+              opacity: 0,
+            })}
+          />
+        )}
+        {showMap && mapShape && (
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full opacity-70">
+            <path d={mapShape} fill="rgba(91,70,58,0.06)" stroke="rgba(74,58,49,0.18)" strokeWidth="0.6" />
+          </svg>
+        )}
+        {items.map((item) => {
+          const isActive = activeId === item.name;
+          const latCenter = item.center?.[0] ?? ((item.y + item.h / 2) / 100) * 20;
+          const lngCenter = item.center?.[1] ?? ((item.x + item.w / 2) / 100) * 28;
+          const latSpan = (item.h / 100) * 6;
+          const lngSpan = (item.w / 100) * 8;
+          const bounds: [[number, number], [number, number]] = [
+            [latCenter - latSpan / 2, lngCenter - lngSpan / 2],
+            [latCenter + latSpan / 2, lngCenter + lngSpan / 2],
+          ];
+
+          return (
+            <div key={item.id}>
+              <LeafletRectangle
+                bounds={bounds}
+                eventHandlers={{ click: () => onSelect(item.name) }}
+                pathOptions={{
+                  color: isActive ? "#4e2d2d" : "#b98f6a",
+                  weight: isActive ? 3.8 : 2.1,
+                  opacity: 1,
+                  fillColor: isActive ? "#c88762" : "#f3e7d8",
+                  fillOpacity: isActive ? 1 : 0.82,
+                  dashArray: isActive ? undefined : "0",
+                  className: isActive ? "region-selected" : undefined,
+                }}
+              />
+              <LeafletMarker
+                position={[latCenter, lngCenter]}
+                icon={createBlockLabelIcon(item.name, isActive)}
+                eventHandlers={{ click: () => onSelect(item.name) }}
+              />
+            </div>
+          );
+        })}
+      </LeafletMap>
+    </div>
+  );
+}
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
 type Category = keyof typeof categoryLabels;
@@ -118,19 +374,253 @@ type RegionPoint = {
   center: [number, number];
 };
 
-const wineRegions: RegionPoint[] = [
-  { name: "프랑스", center: [46.6, 2.5] },
-  { name: "호주", center: [-25.3, 133.8] },
-  { name: "미국", center: [37.1, -95.7] },
-  { name: "이탈리아", center: [42.8, 12.5] },
-  { name: "스페인", center: [40.2, -3.7] },
-];
 const teaRegions: RegionPoint[] = [
   { name: "안휘", center: [30.9, 117.8] },
   { name: "푸젠", center: [26.1, 118.3] },
   { name: "윈난", center: [25.0, 101.0] },
   { name: "저장", center: [29.3, 119.8] },
   { name: "쓰촨", center: [30.7, 104.1] },
+  { name: "광둥", center: [23.1, 113.2] },
+  { name: "후난", center: [27.6, 109.9] },
+  { name: "장시", center: [27.6, 115.9] },
+  { name: "구이저우", center: [26.8, 106.7] },
+  { name: "허난", center: [34.3, 113.4] },
+  { name: "후베이", center: [30.7, 111.3] },
+  { name: "광시", center: [23.8, 108.3] },
+  { name: "대만", center: [23.7, 120.9] },
+  { name: "한국", center: [36.5, 127.8] },
+  { name: "일본", center: [36.2, 138.3] },
+];
+
+type GeoRegionShape = FeatureCollection;
+
+const geoJsonCountryShapes: Record<string, GeoRegionShape> = {
+  프랑스: {
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      properties: { name: "프랑스" },
+      geometry: { type: "Polygon", coordinates: [[[-5.2, 41.2], [-4.8, 48.9], [0.5, 51.2], [7.9, 49.4], [9.3, 43.8], [7.2, 42.4], [1.7, 42.6], [-3.6, 43.5], [-5.2, 41.2]]] },
+    }],
+  } as GeoRegionShape,
+  호주: {
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      properties: { name: "호주" },
+      geometry: { type: "Polygon", coordinates: [[[112.8, -10.5], [114.8, -22.5], [116.2, -34.7], [117.8, -38.5], [129.1, -42.7], [145.7, -42.5], [153.7, -28.0], [154.5, -13.5], [141.0, -12.0], [129.0, -14.0], [116.5, -15.0], [112.8, -10.5]]] },
+    }],
+  } as GeoRegionShape,
+  미국: {
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      properties: { name: "미국" },
+      geometry: { type: "Polygon", coordinates: [[[-124.9, 24.4], [-124.2, 30.0], [-117.3, 32.8], [-109.0, 36.9], [-102.0, 41.0], [-96.4, 47.1], [-92.8, 49.1], [-86.8, 45.0], [-81.7, 28.4], [-79.7, 25.6], [-83.5, 24.1], [-95.3, 25.5], [-104.5, 24.5], [-117.0, 24.6], [-124.9, 24.4]]] },
+    }],
+  } as GeoRegionShape,
+  이탈리아: {
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      properties: { name: "이탈리아" },
+      geometry: { type: "Polygon", coordinates: [[[7.5, 37.0], [8.7, 39.2], [11.2, 46.4], [13.7, 47.8], [17.8, 46.0], [18.3, 40.6], [15.1, 38.1], [11.4, 37.3], [7.5, 37.0]]] },
+    }],
+  } as GeoRegionShape,
+  스페인: {
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      properties: { name: "스페인" },
+      geometry: { type: "Polygon", coordinates: [[[-9.5, 43.0], [-8.1, 43.8], [-3.8, 44.0], [1.2, 41.8], [4.6, 40.4], [3.9, 36.0], [1.4, 35.9], [-5.0, 36.1], [-9.5, 43.0]]] },
+    }],
+  } as GeoRegionShape,
+  칠레: {
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      properties: { name: "칠레" },
+      geometry: { type: "Polygon", coordinates: [[[-75.0, -18.0], [-70.5, -18.8], [-68.0, -22.0], [-71.2, -27.5], [-71.9, -35.2], [-76.7, -38.8], [-77.0, -53.0], [-75.0, -18.0]]] },
+    }],
+  } as GeoRegionShape,
+  아르헨티나: {
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      properties: { name: "아르헨티나" },
+      geometry: { type: "Polygon", coordinates: [[[-73.5, -22.0], [-67.4, -22.0], [-62.8, -26.5], [-58.5, -30.2], [-62.0, -46.2], [-69.5, -52.6], [-73.5, -22.0]]] },
+    }],
+  } as GeoRegionShape,
+  뉴질랜드: {
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      properties: { name: "뉴질랜드" },
+      geometry: { type: "Polygon", coordinates: [[[165.0, -34.0], [176.0, -36.6], [178.6, -37.7], [174.5, -47.0], [169.0, -46.8], [165.0, -34.0]]] },
+    }],
+  } as GeoRegionShape,
+};
+
+const chinaProvinceGeoJson: Record<string, GeoRegionShape> = {
+  안휘: { type: "FeatureCollection", features: [{ type: "Feature", properties: { name: "안휘" }, geometry: { type: "Polygon", coordinates: [[[116.8, 29.2], [118.5, 29.5], [119.3, 31.4], [118.8, 32.5], [117.4, 32.9], [116.2, 31.3], [116.8, 29.2]]] } }] } as GeoRegionShape,
+  푸젠: { type: "FeatureCollection", features: [{ type: "Feature", properties: { name: "푸젠" }, geometry: { type: "Polygon", coordinates: [[[117.0, 24.8], [119.0, 25.0], [120.1, 27.7], [118.9, 28.7], [117.4, 27.7], [116.8, 25.8], [117.0, 24.8]]] } }] } as GeoRegionShape,
+  윈난: { type: "FeatureCollection", features: [{ type: "Feature", properties: { name: "윈난" }, geometry: { type: "Polygon", coordinates: [[[97.5, 21.6], [101.2, 22.0], [105.0, 24.5], [106.1, 27.8], [104.1, 29.2], [100.9, 28.3], [98.1, 25.9], [97.5, 21.6]]] } }] } as GeoRegionShape,
+  저장: { type: "FeatureCollection", features: [{ type: "Feature", properties: { name: "저장" }, geometry: { type: "Polygon", coordinates: [[[118.5, 28.2], [121.2, 28.6], [122.6, 30.5], [121.6, 31.9], [119.3, 31.2], [118.5, 28.2]]] } }] } as GeoRegionShape,
+  쓰촨: { type: "FeatureCollection", features: [{ type: "Feature", properties: { name: "쓰촨" }, geometry: { type: "Polygon", coordinates: [[[102.0, 28.0], [106.0, 28.6], [108.9, 31.5], [107.4, 34.2], [103.4, 34.0], [101.0, 31.8], [102.0, 28.0]]] } }] } as GeoRegionShape,
+  광둥: { type: "FeatureCollection", features: [{ type: "Feature", properties: { name: "광둥" }, geometry: { type: "Polygon", coordinates: [[[112.0, 22.7], [114.5, 22.9], [115.5, 24.8], [114.8, 25.8], [112.6, 25.1], [111.8, 23.5], [112.0, 22.7]]] } }] } as GeoRegionShape,
+  후난: { type: "FeatureCollection", features: [{ type: "Feature", properties: { name: "후난" }, geometry: { type: "Polygon", coordinates: [[[108.6, 24.7], [112.4, 25.0], [113.6, 28.9], [111.5, 30.6], [109.2, 29.2], [108.6, 24.7]]] } }] } as GeoRegionShape,
+  장시: { type: "FeatureCollection", features: [{ type: "Feature", properties: { name: "장시" }, geometry: { type: "Polygon", coordinates: [[[113.6, 24.5], [116.5, 24.8], [117.8, 27.3], [116.1, 29.5], [114.2, 28.9], [113.6, 24.5]]] } }] } as GeoRegionShape,
+  구이저우: { type: "FeatureCollection", features: [{ type: "Feature", properties: { name: "구이저우" }, geometry: { type: "Polygon", coordinates: [[[103.8, 24.5], [107.2, 25.0], [108.8, 28.2], [107.0, 29.4], [104.2, 27.9], [103.8, 24.5]]] } }] } as GeoRegionShape,
+  허난: { type: "FeatureCollection", features: [{ type: "Feature", properties: { name: "허난" }, geometry: { type: "Polygon", coordinates: [[[110.8, 31.5], [114.2, 31.9], [115.1, 35.2], [112.5, 36.0], [110.6, 33.8], [110.8, 31.5]]] } }] } as GeoRegionShape,
+  후베이: { type: "FeatureCollection", features: [{ type: "Feature", properties: { name: "후베이" }, geometry: { type: "Polygon", coordinates: [[[108.8, 29.0], [112.8, 29.7], [114.7, 32.7], [112.8, 33.9], [109.5, 32.6], [108.8, 29.0]]] } }] } as GeoRegionShape,
+  광시: { type: "FeatureCollection", features: [{ type: "Feature", properties: { name: "광시" }, geometry: { type: "Polygon", coordinates: [[[104.2, 21.8], [108.6, 22.1], [110.9, 25.2], [109.0, 26.8], [105.3, 25.8], [104.2, 21.8]]] } }] } as GeoRegionShape,
+  대만: { type: "FeatureCollection", features: [{ type: "Feature", properties: { name: "대만" }, geometry: { type: "Polygon", coordinates: [[[120.8, 21.8], [121.8, 22.2], [122.2, 24.8], [121.7, 25.5], [120.8, 25.0], [120.2, 23.6], [120.8, 21.8]]] } }] } as GeoRegionShape,
+  한국: { type: "FeatureCollection", features: [{ type: "Feature", properties: { name: "한국" }, geometry: { type: "Polygon", coordinates: [[[124.6, 33.2], [129.4, 35.1], [130.4, 38.6], [128.5, 39.5], [125.7, 38.8], [124.0, 36.2], [124.6, 33.2]]] } }] } as GeoRegionShape,
+  일본: { type: "FeatureCollection", features: [{ type: "Feature", properties: { name: "일본" }, geometry: { type: "Polygon", coordinates: [[[129.2, 31.1], [145.8, 31.0], [146.4, 45.5], [130.2, 45.6], [129.2, 31.1]]] } }] } as GeoRegionShape,
+};
+
+const wineMapShapes: Record<string, string> = {
+  프랑스: "M28 20L38 14L48 16L58 12L69 18L76 26L80 38L77 50L69 58L74 69L66 81L52 86L39 82L29 76L22 66L18 54L19 42L22 30Z",
+  호주: "M28 18L40 12L51 15L64 14L74 24L82 35L78 49L82 62L75 75L62 82L50 86L38 78L24 70L20 54L22 39L18 28Z",
+  미국: "M18 26L30 18L42 20L52 14L66 18L78 24L86 38L82 53L76 66L64 77L48 82L32 76L20 68L15 54L12 41Z",
+  이탈리아: "M38 18L48 12L60 16L68 24L72 36L68 50L62 61L56 72L46 76L36 69L30 58L28 45L32 29Z",
+  스페인: "M24 26L36 18L48 20L57 24L64 34L62 48L56 60L62 72L54 81L42 82L32 74L24 64L18 52L16 38Z",
+  칠레: "M30 32L44 20L58 22L66 34L62 50L55 63L42 68L30 60L24 48Z",
+  아르헨티나: "M24 20L38 18L52 24L64 34L68 48L62 64L48 74L34 70L26 58L20 40Z",
+  뉴질랜드: "M34 22L46 18L58 22L62 34L58 46L50 56L40 60L32 52L28 38Z",
+};
+
+const chinaMapShape = "M16 18L28 12L42 16L56 10L74 16L86 26L94 38L90 52L94 68L84 80L72 90L64 94L48 88L36 82L22 70L14 58L10 44L12 28Z M69 14L74 12L82 14L86 20L80 24L72 22L69 14Z M72 22L78 20L84 24L84 30L76 32L70 28L72 22Z M59 10L64 8L70 12L69 18L61 18L56 14L59 10Z";
+
+const wineCountryGroups = [
+  { name: "프랑스", countries: ["프랑스"] },
+  { name: "호주", countries: ["호주"] },
+  { name: "미국", countries: ["미국"] },
+  { name: "이탈리아", countries: ["이탈리아"] },
+  { name: "기타", countries: ["스페인", "칠레", "아르헨티나", "뉴질랜드", "독일", "오스트리아", "포르투갈", "직접입력"] },
+] as const;
+
+const wineBlocksByCountry: Record<string, RegionBlock[]> = {
+  독일: [
+    { id: "de-rheinhessen", name: "라인헤센", x: 36, y: 26, w: 18, h: 14, center: [49.9, 8.0] },
+    { id: "de-pfalz", name: "팔츠", x: 42, y: 18, w: 16, h: 12, center: [49.3, 8.2] },
+    { id: "de-mosel", name: "모젤", x: 58, y: 20, w: 16, h: 12, center: [49.9, 6.9] },
+    { id: "de-baden", name: "바덴", x: 48, y: 42, w: 18, h: 14, center: [48.3, 8.0] },
+    { id: "de-franken", name: "프랑켄", x: 34, y: 42, w: 16, h: 12, center: [49.8, 10.2] },
+  ],
+  오스트리아: [
+    { id: "at-wachau", name: "바흐라우", x: 42, y: 32, w: 18, h: 14, center: [48.4, 15.4] },
+    { id: "at-kamptal", name: "캄프탈", x: 54, y: 30, w: 18, h: 12, center: [48.3, 15.7] },
+    { id: "at-neusiedl", name: "노이시들", x: 46, y: 52, w: 18, h: 12, center: [47.9, 16.8] },
+    { id: "at-styria", name: "슈타이어마르크", x: 62, y: 52, w: 20, h: 14, center: [47.1, 15.5] },
+  ],
+  포르투갈: [
+    { id: "pt-douro", name: "도우루", x: 46, y: 42, w: 18, h: 16, center: [41.1, -7.8] },
+    { id: "pt-vinhoverde", name: "비뉴베르데", x: 32, y: 28, w: 18, h: 12, center: [41.7, -8.6] },
+    { id: "pt-alentejo", name: "알렌테주", x: 52, y: 60, w: 16, h: 12, center: [38.4, -7.9] },
+    { id: "pt-beiras", name: "베이라스", x: 34, y: 62, w: 18, h: 14, center: [40.4, -8.0] },
+  ],
+  직접입력: [
+    { id: "manual-custom", name: "직접입력", x: 50, y: 50, w: 18, h: 12, center: [0, 0] },
+  ],
+  프랑스: [
+    { id: "fr-bordeaux", name: "보르도", x: 42, y: 38, w: 20, h: 16, center: [44.8, -0.6] },
+    { id: "fr-burgundy", name: "부르고뉴", x: 52, y: 26, w: 16, h: 14, center: [47.2, 4.7] },
+    { id: "fr-champagne", name: "샹파뉴", x: 46, y: 15, w: 18, h: 12, center: [49.1, 3.9] },
+    { id: "fr-jura", name: "쥐라", x: 58, y: 24, w: 14, h: 12, center: [46.8, 5.9] },
+    { id: "fr-chablis", name: "샤블리", x: 52, y: 18, w: 14, h: 10, center: [47.8, 3.8] },
+    { id: "fr-beaujolais", name: "보졸레", x: 62, y: 42, w: 16, h: 12, center: [46.2, 4.7] },
+    { id: "fr-loire", name: "루아르", x: 32, y: 54, w: 18, h: 14, center: [47.6, -0.6] },
+    { id: "fr-rhone", name: "론", x: 58, y: 50, w: 16, h: 18, center: [45.0, 4.8] },
+    { id: "fr-alsace", name: "알자스", x: 66, y: 18, w: 15, h: 12, center: [48.3, 7.3] },
+    { id: "fr-provence", name: "프로방스", x: 68, y: 62, w: 16, h: 15, center: [43.6, 5.8] },
+    { id: "fr-languedoc", name: "랑그도크", x: 58, y: 68, w: 18, h: 18, center: [43.4, 3.2] },
+  ],
+  호주: [
+    { id: "au-barossa", name: "바로사", x: 40, y: 46, w: 18, h: 15, center: [-34.5, 139.0] },
+    { id: "au-mclaren", name: "맥라렌밸리", x: 52, y: 36, w: 18, h: 14, center: [-35.1, 138.7] },
+    { id: "au-yarra", name: "야라밸리", x: 56, y: 58, w: 18, h: 14, center: [-37.8, 145.0] },
+    { id: "au-tasmania", name: "태즈메이니아", x: 26, y: 18, w: 16, h: 12, center: [-41.5, 146.7] },
+    { id: "au-victoria", name: "빅토리아", x: 46, y: 60, w: 18, h: 14, center: [-36.9, 144.2] },
+    { id: "au-hunter", name: "헌터밸리", x: 62, y: 46, w: 16, h: 12, center: [-32.1, 151.4] },
+    { id: "au-adelaide", name: "애들레이드힐", x: 44, y: 52, w: 16, h: 12, center: [-34.9, 138.6] },
+    { id: "au-margaret", name: "마가렛리버", x: 18, y: 58, w: 18, h: 12, center: [-16.3, 128.8] },
+  ],
+  미국: [
+    { id: "us-napa", name: "나파", x: 24, y: 46, w: 18, h: 18, center: [38.3, -122.3] },
+    { id: "us-sonoma", name: "소노마", x: 34, y: 30, w: 20, h: 14, center: [38.5, -122.8] },
+    { id: "us-monterey", name: "몬트레이", x: 28, y: 22, w: 18, h: 12, center: [36.6, -121.9] },
+    { id: "us-santabarbara", name: "산타바바라", x: 38, y: 24, w: 18, h: 12, center: [34.4, -119.7] },
+    { id: "us-willamette", name: "윌라메트 밸리", x: 46, y: 20, w: 18, h: 12, center: [45.5, -123.1] },
+    { id: "us-columbia", name: "컬럼비아 밸리", x: 56, y: 18, w: 18, h: 12, center: [46.2, -119.3] },
+    { id: "us-walla", name: "왈라왈라 밸리", x: 64, y: 26, w: 18, h: 12, center: [46.1, -119.3] },
+    { id: "us-finger", name: "핑거 레이커스", x: 62, y: 32, w: 18, h: 12, center: [42.8, -77.0] },
+    { id: "us-texas", name: "텍사스", x: 44, y: 66, w: 18, h: 18, center: [30.3, -98.7] },
+    { id: "us-newyork", name: "뉴욕", x: 56, y: 30, w: 16, h: 14, center: [42.9, -76.9] },
+    { id: "us-oregon", name: "오리건", x: 40, y: 18, w: 18, h: 12, center: [45.5, -122.6] },
+    { id: "us-washington", name: "워싱턴", x: 60, y: 18, w: 16, h: 12, center: [47.6, -120.5] },
+    { id: "us-longisland", name: "롱아일랜드", x: 58, y: 40, w: 16, h: 12, center: [40.9, -72.9] },
+  ],
+  이탈리아: [
+    { id: "it-piemonte", name: "피에몬테", x: 48, y: 24, w: 18, h: 16, center: [44.7, 7.8] },
+    { id: "it-tuscany", name: "토스카나", x: 42, y: 42, w: 22, h: 18, center: [43.4, 11.2] },
+    { id: "it-sicily", name: "시칠리아", x: 66, y: 62, w: 18, h: 16, center: [37.6, 14.3] },
+    { id: "it-veneto", name: "베네토", x: 56, y: 34, w: 18, h: 16, center: [45.7, 11.8] },
+    { id: "it-umbria", name: "움브리아", x: 36, y: 56, w: 16, h: 14, center: [42.9, 12.5] },
+    { id: "it-lazio", name: "라치오", x: 46, y: 58, w: 16, h: 14, center: [41.9, 12.7] },
+    { id: "it-puglia", name: "풀리아", x: 62, y: 72, w: 18, h: 14, center: [41.1, 16.9] },
+    { id: "it-trentino", name: "트렌티노", x: 50, y: 18, w: 16, h: 12, center: [46.1, 11.1] },
+  ],
+  스페인: [
+    { id: "es-rioja", name: "리오하", x: 36, y: 34, w: 18, h: 18, center: [42.4, -2.5] },
+    { id: "es-ribera", name: "리베라 델 두에로", x: 54, y: 46, w: 22, h: 18, center: [41.4, -4.0] },
+    { id: "es-cava", name: "카바", x: 62, y: 24, w: 18, h: 12, center: [41.4, 1.7] },
+    { id: "es-penedes", name: "페네데스", x: 44, y: 64, w: 18, h: 16, center: [41.4, 1.7] },
+    { id: "es-rueda", name: "루에다", x: 26, y: 52, w: 16, h: 14, center: [41.6, -5.5] },
+    { id: "es-jerez", name: "헤레스", x: 22, y: 70, w: 18, h: 14, center: [36.7, -5.8] },
+    { id: "es-navarra", name: "나바라", x: 38, y: 26, w: 16, h: 12, center: [42.8, -1.8] },
+    { id: "es-castilla", name: "카스티야", x: 48, y: 58, w: 18, h: 14, center: [40.5, -3.7] },
+  ],
+  칠레: [
+    { id: "cl-maipo", name: "마이포", x: 34, y: 42, w: 16, h: 16, center: [-33.6, -70.6] },
+    { id: "cl-colchagua", name: "콜차구아", x: 50, y: 50, w: 18, h: 16, center: [-34.5, -71.4] },
+    { id: "cl-casablanca", name: "카사블랑카", x: 28, y: 26, w: 18, h: 12, center: [-33.3, -71.4] },
+    { id: "cl-maule", name: "마울레", x: 58, y: 38, w: 18, h: 16, center: [-35.4, -71.7] },
+    { id: "cl-apalta", name: "아팔타", x: 40, y: 58, w: 16, h: 12, center: [-34.3, -70.8] },
+    { id: "cl-rio", name: "리오클라로", x: 48, y: 30, w: 16, h: 12, center: [-34.2, -70.9] },
+  ],
+  아르헨티나: [
+    { id: "ar-mendoza", name: "멘도사", x: 40, y: 42, w: 22, h: 18, center: [-32.9, -68.8] },
+    { id: "ar-salta", name: "살타", x: 54, y: 30, w: 18, h: 14, center: [-24.8, -65.4] },
+    { id: "ar-neuquen", name: "누에켄", x: 32, y: 58, w: 18, h: 16, center: [-39.0, -68.1] },
+    { id: "ar-sanjuan", name: "산후안", x: 28, y: 34, w: 18, h: 14, center: [-31.5, -68.5] },
+    { id: "ar-rioja", name: "리오하", x: 48, y: 58, w: 16, h: 12, center: [-29.4, -66.9] },
+  ],
+  뉴질랜드: [
+    { id: "nz-marlborough", name: "말보로", x: 38, y: 34, w: 20, h: 16, center: [-41.5, 173.9] },
+    { id: "nz-hawkes", name: "호크스베이", x: 54, y: 46, w: 18, h: 14, center: [-39.0, 177.9] },
+    { id: "nz-central", name: "센트럴오타고", x: 46, y: 60, w: 22, h: 16, center: [-45.0, 169.4] },
+    { id: "nz-west", name: "웨스트코스트", x: 30, y: 48, w: 16, h: 12, center: [-42.7, 171.3] },
+    { id: "nz-canterbury", name: "캔터베리", x: 58, y: 32, w: 16, h: 12, center: [-43.7, 172.6] },
+  ],
+};
+
+const teaBlocks: RegionBlock[] = [
+  { id: "tea-anhui", name: "안휘", x: 30, y: 42, w: 18, h: 14, center: [31.8, 117.3] },
+  { id: "tea-fujian", name: "푸젠", x: 46, y: 26, w: 18, h: 14, center: [26.1, 118.3] },
+  { id: "tea-yunnan", name: "윈난", x: 60, y: 70, w: 20, h: 16, center: [24.9, 101.5] },
+  { id: "tea-zhejiang", name: "저장", x: 62, y: 30, w: 18, h: 14, center: [29.3, 119.8] },
+  { id: "tea-sichuan", name: "쓰촨", x: 28, y: 60, w: 18, h: 16, center: [30.6, 104.1] },
+  { id: "tea-guangdong", name: "광둥", x: 72, y: 44, w: 16, h: 14, center: [23.1, 113.3] },
+  { id: "tea-hunan", name: "후난", x: 48, y: 54, w: 18, h: 14, center: [27.6, 109.9] },
+  { id: "tea-jiangxi", name: "장시", x: 54, y: 42, w: 16, h: 12, center: [27.6, 115.9] },
+  { id: "tea-guizhou", name: "구이저우", x: 44, y: 68, w: 18, h: 14, center: [26.5, 106.6] },
+  { id: "tea-henan", name: "허난", x: 38, y: 34, w: 16, h: 12, center: [34.3, 113.4] },
+  { id: "tea-hubei", name: "후베이", x: 34, y: 52, w: 18, h: 14, center: [30.9, 111.8] },
+  { id: "tea-guangxi", name: "광시", x: 74, y: 58, w: 16, h: 14, center: [23.8, 108.3] },
+  { id: "tea-taiwan", name: "대만", x: 80, y: 24, w: 12, h: 10, center: [23.7, 120.9] },
+  { id: "tea-korea", name: "한국", x: 68, y: 12, w: 12, h: 10, center: [36.5, 127.8] },
+  { id: "tea-japan", name: "일본", x: 78, y: 8, w: 18, h: 12, center: [36.2, 138.3] },
 ];
 
 const getDefaultForm = (category: Category = "whisky"): FormState => ({
@@ -177,6 +667,34 @@ const getTagOptions = (category: Category) => {
   return teaTags;
 };
 
+const getSavedRegionLabel = (note: Pick<Note, "category" | "regionName" | "distilleryName">) => {
+  if (note.category === "whisky") return note.distilleryName || note.regionName || "증류소 미선택";
+  return note.regionName || "산지 미선택";
+};
+
+const getArchiveRegionMapProps = (note: Pick<Note, "category" | "regionName">) => {
+  if (note.category === "wine") {
+    const country = Object.entries(wineBlocksByCountry).find(([, regions]) => regions.some((region) => region.name === note.regionName))?.[0] ?? "프랑스";
+    return {
+      items: wineBlocksByCountry[country] ?? wineBlocksByCountry["프랑스"],
+      mapShape: wineMapShapes[country] ?? wineMapShapes["프랑스"],
+      geoJson: geoJsonCountryShapes[country] ?? geoJsonCountryShapes["프랑스"],
+      activeId: note.regionName,
+    };
+  }
+
+  if (note.category === "tea") {
+    return {
+      items: teaBlocks,
+      mapShape: chinaMapShape,
+      geoJson: chinaProvinceGeoJson[note.regionName] ?? chinaProvinceGeoJson["안휘"],
+      activeId: note.regionName,
+    };
+  }
+
+  return null;
+};
+
 export default function HomePage() {
   const [view, setView] = useState<"landing" | "tasting" | "archive" | "calendar">("landing");
   const [category, setCategory] = useState<Category>("whisky");
@@ -187,9 +705,17 @@ export default function HomePage() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [archiveViewMode, setArchiveViewMode] = useState<"card" | "list">("card");
+  const [detailPanels, setDetailPanels] = useState({ region: false, teaLeaf: false, label: false });
   const [showToast, setShowToast] = useState(false);
   const [distilleryQuery, setDistilleryQuery] = useState("");
-  const [selectedRegion, setSelectedRegion] = useState("프랑스");
+  const [selectedCountryGroup, setSelectedCountryGroup] = useState<(typeof wineCountryGroups)[number]["name"]>("프랑스");
+  const [selectedCountry, setSelectedCountry] = useState("프랑스");
+
+  const wineCountryOptions = useMemo(
+    () => wineCountryGroups.find((group) => group.name === selectedCountryGroup)?.countries ?? ["프랑스"],
+    [selectedCountryGroup],
+  );
 
   const tagOptions = useMemo(() => getTagOptions(category), [category]);
 
@@ -265,6 +791,11 @@ export default function HomePage() {
   };
 
   const saveNote = async () => {
+    const regionLabel =
+      category === "whisky"
+        ? (form.selectedDistillery?.name_ko || form.distilleryName || form.regionName)
+        : form.regionName;
+
     const record: Note = {
       ...form,
       id: crypto.randomUUID(),
@@ -272,6 +803,7 @@ export default function HomePage() {
       category,
       people: form.people === "직접입력" ? form.peopleCustom || "직접입력" : form.people,
       distilleryName: form.selectedDistillery?.name_ko || form.distilleryName,
+      regionName: regionLabel || "",
       type: form.type || (category === "whisky" ? "싱글몰트" : category === "wine" ? "레드" : "녹차"),
     };
 
@@ -323,6 +855,13 @@ export default function HomePage() {
   const isWine = category === "wine";
   const isTea = category === "tea";
   const detailDistillery = selectedNote?.selectedDistillery ?? null;
+  const toggleDetailPanel = (key: "region" | "teaLeaf" | "label") => {
+    setDetailPanels((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  useEffect(() => {
+    setDetailPanels({ region: false, teaLeaf: false, label: false });
+  }, [selectedNote?.id]);
 
   return (
     <main className="min-h-screen">
@@ -384,7 +923,7 @@ export default function HomePage() {
                     <div className="rounded-full bg-[#f1e6dc] p-2 text-[#533d32]"><FontAwesomeIcon icon={faGlassCheers} /></div>
                     <div>
                       <div className="text-[10px] tracking-[0.3em] text-[#715d55]">TASTING NOTE</div>
-                      <div className="text-xl font-semibold">Tasting Journal</div>
+                      <div className="brand-script text-3xl leading-none tracking-[0.04em] text-[#2d201d]">A Slow, Lovely Pour</div>
                     </div>
                   </div>
                   <nav className="flex flex-wrap gap-2">
@@ -411,62 +950,73 @@ export default function HomePage() {
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {(["whisky", "wine", "tea"] as Category[]).map((item) => (
-                          <button key={item} type="button" onClick={() => { setCategory(item); setForm((prev) => ({ ...prev, category: item, type: item === "whisky" ? "싱글몰트" : item === "wine" ? "레드" : "녹차" })); }} className={`rounded-full px-4 py-2 text-sm font-medium ${category === item ? "bg-[#2a201d] text-[#f3efe9]" : "bg-white/70 text-[#2d2522]"}`}>{categoryLabels[item]}</button>
+                          <button key={item} type="button" onClick={() => { setCategory(item); setForm((prev) => ({ ...prev, category: item, type: item === "whisky" ? "싱글몰트" : item === "wine" ? "레드" : "녹차" })); }} className={`premium-button rounded-full px-4 py-2 text-[12px] font-medium tracking-[-0.01em] shadow-[0_4px_10px_rgba(136,100,82,0.06)] ${category === item ? "bg-[#f9d8c9] text-[#3d2c2a]" : "bg-[#fffaf7] text-[#3d2e2c]"}`}>{categoryLabels[item]}</button>
                         ))}
                       </div>
                     </div>
 
-                    <div className="space-y-6">
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <label className="block text-sm font-medium text-[#3f312d]">
-                          <span className="mb-2 block">마신날</span>
-                          <input type="date" value={form.date} onChange={(e) => updateField("date", e.target.value)} className="w-full rounded-2xl border border-[#d9cbb9] bg-white/80 p-3 outline-none" />
+                    <div className="space-y-5">
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <label className="form-label-row">
+                          <span>마신날</span>
+                          <input type="date" value={form.date} onChange={(e) => updateField("date", e.target.value)} className="form-label-input" />
                         </label>
-                        <label className="block text-sm font-medium text-[#3f312d]">
-                          <span className="mb-2 block">장소</span>
-                          <input value={form.place} onChange={(e) => updateField("place", e.target.value)} placeholder="예: 서울, 도쿄" className="w-full rounded-2xl border border-[#d9cbb9] bg-white/80 p-3 outline-none" />
+                        <label className="form-label-row">
+                          <span>장소</span>
+                          <input value={form.place} onChange={(e) => updateField("place", e.target.value)} placeholder="예: 서울, 도쿄" className="form-label-input" />
                         </label>
                       </div>
 
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <label className="block text-sm font-medium text-[#3f312d]">
-                          <span className="mb-2 block">마신 사람</span>
-                          <select value={form.people === "직접입력" ? "직접입력" : form.people} onChange={(e) => { const value = e.target.value; updateField("people", value); if (value !== "직접입력") updateField("peopleCustom", ""); }} className="w-full rounded-2xl border border-[#d9cbb9] bg-white/80 p-3 outline-none">
-                            {peopleOptions.map((person) => <option key={person} value={person}>{person}</option>)}
-                          </select>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <label className="form-label-row">
+                          <span>마신 사람</span>
+                          <div className="min-w-0">
+                            <CustomSelect
+                              value={form.people === "직접입력" ? "직접입력" : form.people}
+                              options={peopleOptions}
+                              onChange={(value) => {
+                                updateField("people", value);
+                                if (value !== "직접입력") updateField("peopleCustom", "");
+                              }}
+                            />
+                          </div>
                         </label>
                         {form.people === "직접입력" && (
-                          <label className="block text-sm font-medium text-[#3f312d]">
-                            <span className="mb-2 block">직접 입력</span>
-                            <input value={form.peopleCustom} onChange={(e) => updateField("peopleCustom", e.target.value)} placeholder="이름 입력" className="w-full rounded-2xl border border-[#d9cbb9] bg-white/80 p-3 outline-none" />
+                          <label className="form-label-row">
+                            <span>직접 입력</span>
+                            <input value={form.peopleCustom} onChange={(e) => updateField("peopleCustom", e.target.value)} placeholder="이름 입력" className="form-label-input" />
                           </label>
                         )}
                       </div>
 
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <label className="block text-sm font-medium text-[#3f312d]">
-                          <span className="mb-2 block">종류</span>
-                          <select value={form.type} onChange={(e) => updateField("type", e.target.value)} className="w-full rounded-2xl border border-[#d9cbb9] bg-white/80 p-3 outline-none">
-                            {(isWhisky ? whiskyKinds : isWine ? wineKinds : teaKinds).map((item) => <option key={item} value={item}>{item}</option>)}
-                          </select>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <label className="form-label-row">
+                          <span>종류</span>
+                          <div className="min-w-0">
+                            <CustomSelect
+                              value={form.type}
+                              options={isWhisky ? whiskyKinds : isWine ? wineKinds : teaKinds}
+                              onChange={(value) => updateField("type", value)}
+                            />
+                          </div>
                         </label>
                         {isTea ? (
-                          <label className="block text-sm font-medium text-[#3f312d]">
-                            <span className="mb-2 block">세부품종</span>
-                            <input value={form.teaVariety} onChange={(e) => updateField("teaVariety", e.target.value)} placeholder="예: 대운본, 우전" className="w-full rounded-2xl border border-[#d9cbb9] bg-white/80 p-3 outline-none" />
+                          <label className="form-label-row">
+                            <span>세부품종</span>
+                            <input value={form.teaVariety} onChange={(e) => updateField("teaVariety", e.target.value)} placeholder="예: 대운본, 우전" className="form-label-input" />
                           </label>
                         ) : (
-                          <label className="block text-sm font-medium text-[#3f312d]">
-                            <span className="mb-2 block">이름</span>
-                            <input value={form.name} onChange={(e) => updateField("name", e.target.value)} placeholder={isWhisky ? "예: Glenlivet 12" : "예: Châteauneuf-du-Pape"} className="w-full rounded-2xl border border-[#d9cbb9] bg-white/80 p-3 outline-none" />
+                          <label className="form-label-row">
+                            <span>이름</span>
+                            <input value={form.name} onChange={(e) => updateField("name", e.target.value)} placeholder={isWhisky ? "예: Glenlivet 12" : "예: Châteauneuf-du-Pape"} className="form-label-input" />
                           </label>
                         )}
                       </div>
 
                       {isTea && (
-                        <label className="block text-sm font-medium text-[#3f312d]">
-                          <span className="mb-2 block">이름</span>
-                          <input value={form.name} onChange={(e) => updateField("name", e.target.value)} placeholder="예: 우전 2024" className="w-full rounded-2xl border border-[#d9cbb9] bg-white/80 p-3 outline-none" />
+                        <label className="form-label-row">
+                          <span>이름</span>
+                          <input value={form.name} onChange={(e) => updateField("name", e.target.value)} placeholder="예: 우전 2024" className="form-label-input" />
                         </label>
                       )}
 
@@ -516,12 +1066,8 @@ export default function HomePage() {
                             ))}
                           </div>
                           {form.selectedDistillery && (
-                            <div className="mt-4 h-64 overflow-hidden rounded-2xl border border-[#d5c2a5]">
-                              <DynamicMap
-                                center={[form.selectedDistillery.latitude, form.selectedDistillery.longitude] as LatLngExpression}
-                                zoom={7}
-                                selectedName={form.selectedDistillery.name_ko}
-                              />
+                            <div className="mt-4">
+                              <WhiskyPinMap distillery={form.selectedDistillery} />
                             </div>
                           )}
                         </div>
@@ -532,30 +1078,59 @@ export default function HomePage() {
                           <div className="flex items-center justify-between gap-2">
                             <h3 className="font-semibold text-[#392d27]">산지 선택</h3>
                             <div className="flex flex-wrap gap-2 text-xs text-[#5d4d44]">
-                              {wineRegions.map((region) => (
-                                <button key={region.name} type="button" onClick={() => setSelectedRegion(region.name)} className={`rounded-full px-2 py-1 ${selectedRegion === region.name ? "bg-[#d9b48a] text-[#2d1f18]" : "bg-[#f1e6dc]"}`}>{region.name}</button>
+                              {wineCountryGroups.map((group) => (
+                                <button key={group.name} type="button" onClick={() => {
+                                  setSelectedCountryGroup(group.name);
+                                  const nextCountry = group.name === "기타" ? "스페인" : group.name;
+                                  setSelectedCountry(nextCountry);
+                                  updateField("regionName", nextCountry);
+                                }} className={`rounded-full px-2 py-1 ${selectedCountryGroup === group.name ? "bg-[#d9b48a] text-[#2d1f18]" : "bg-[#f1e6dc]"}`}>{group.name}</button>
                               ))}
                             </div>
                           </div>
-                          <div className="mt-4 h-64 overflow-hidden rounded-2xl border border-[#d5c2a5]">
-                            <DynamicMap
-                              center={(wineRegions.find((region) => region.name === selectedRegion)?.center ?? [46.6, 2.5]) as LatLngExpression}
-                              zoom={selectedRegion === "프랑스" ? 5 : 3}
-                              markers={wineRegions}
+                          {selectedCountryGroup === "기타" && (
+                            <div className="mt-3 flex flex-wrap gap-2 text-xs text-[#5d4d44]">
+                              {wineCountryOptions.map((country) => (
+                                <button key={country} type="button" onClick={() => {
+                                  setSelectedCountry(country);
+                                  updateField("regionName", country);
+                                }} className={`rounded-full px-2 py-1 ${selectedCountry === country ? "bg-[#d9b48a] text-[#2d1f18]" : "bg-[#f1e6dc]"}`}>{country}</button>
+                              ))}
+                            </div>
+                          )}
+                          <div className="mb-3 mt-3 flex items-center justify-between rounded-full bg-[#f3e2d3] px-3 py-2 text-xs text-[#4a332d]">
+                            <span>선택 국가</span>
+                            <strong>{selectedCountry}</strong>
+                          </div>
+                          <div className="mt-4">
+                            <RegionBlockMap
+                              items={wineBlocksByCountry[selectedCountry] ?? wineBlocksByCountry["프랑스"]}
+                              activeId={form.regionName}
+                              showMap
+                              mapShape={wineMapShapes[selectedCountry] ?? wineMapShapes["프랑스"]}
+                              geoJson={geoJsonCountryShapes[selectedCountry] ?? geoJsonCountryShapes["프랑스"]}
+                              onSelect={(name) => {
+                                updateField("regionName", name);
+                              }}
                             />
                           </div>
-                          <input value={form.regionName} onChange={(e) => { updateField("regionName", e.target.value); setSelectedRegion(e.target.value || selectedRegion); }} placeholder="다른 국가 입력" className="mt-3 w-full rounded-xl border border-[#e8dac9] bg-white p-3 outline-none" />
+                          <input value={form.regionName} onChange={(e) => updateField("regionName", e.target.value)} placeholder="메인 산지 입력" className="mt-3 w-full rounded-xl border border-[#e8dac9] bg-white p-3 outline-none" />
                         </div>
                       )}
 
                       {isTea && (
                         <div className="rounded-3xl border border-[#dbc6ae] bg-white/65 p-4">
                           <div className="mb-2 font-semibold text-[#392d27]">중국 산지 선택</div>
-                          <div className="h-64 overflow-hidden rounded-2xl border border-[#d5c2a5]">
-                            <DynamicMap
-                              center={[32.3, 110.0] as LatLngExpression}
-                              zoom={4}
-                              markers={teaRegions}
+                          <div className="mt-2">
+                            <RegionBlockMap
+                              items={teaBlocks}
+                              activeId={form.regionName}
+                              showMap
+                              mapShape={chinaMapShape}
+                              geoJson={chinaProvinceGeoJson[form.regionName] ?? Object.values(chinaProvinceGeoJson)[0]}
+                              onSelect={(name) => {
+                                updateField("regionName", name);
+                              }}
                             />
                           </div>
                           <div className="mt-3 flex flex-wrap gap-2">
@@ -573,10 +1148,10 @@ export default function HomePage() {
                               <span>{field === "aroma" ? "향" : field === "taste" ? "맛" : "피니시"}</span>
                               <span className="text-[10px] text-[#736159]">칩 추가</span>
                             </div>
-                            <div className="mb-2 flex flex-wrap gap-2">
-                              {tagOptions.map((tag) => <button key={tag} type="button" onClick={() => addTag(field, tag)} className="rounded-full border border-[#d9b894] bg-[#f7efe8] px-2 py-1 text-[10px] text-[#493a34]">+ {tag}</button>)}
+                            <div className="mb-2 flex flex-wrap gap-1.5">
+                              {tagOptions.map((tag) => <button key={tag} type="button" onClick={() => addTag(field, tag)} className="premium-tag rounded-full border border-[#f1cfba] bg-[#fff6f2] px-2 py-0.5 text-[9px] font-medium text-[#493a34] leading-none transition-all duration-200 hover:-translate-y-0.5 hover:border-[#e0a986] hover:bg-[#fdeee5]">+ {tag}</button>)}
                             </div>
-                            <textarea value={form[field]} onChange={(e) => updateField(field, e.target.value)} className="min-h-24 w-full rounded-xl border border-[#e8dac9] bg-white p-2 outline-none" />
+                            <textarea value={form[field]} onChange={(e) => updateField(field, e.target.value)} className="form-label-textarea" />
                           </div>
                         ))}
                       </div>
@@ -598,12 +1173,12 @@ export default function HomePage() {
 
                       <label className="block text-sm font-medium text-[#3f312d]">
                         <span className="mb-2 block">기타 메모</span>
-                        <textarea value={form.notes} onChange={(e) => updateField("notes", e.target.value)} placeholder="기억하고 싶은 감상, 가격, 페어링, 분위기 등을 남기세요." className="min-h-28 w-full rounded-2xl border border-[#d9cbb9] bg-white/80 p-3 outline-none" />
+                        <textarea value={form.notes} onChange={(e) => updateField("notes", e.target.value)} placeholder="기억하고 싶은 감상, 가격, 페어링, 분위기 등을 남기세요." className="form-label-textarea min-h-[120px]" />
                       </label>
 
-                      <div className="flex justify-end gap-3">
-                        <button type="button" onClick={() => setForm(getDefaultForm(category))} className="rounded-full border border-[#d3bda5] bg-white/80 px-5 py-2.5 text-sm font-medium text-[#442f29]">초기화</button>
-                        <button type="button" onClick={saveNote} className="rounded-full bg-[#2b1f1a] px-5 py-2.5 text-sm font-medium text-[#f8f4f0] shadow-lg shadow-[#47352e]/20">저장</button>
+                      <div className="flex justify-end gap-2.5">
+                        <button type="button" onClick={() => setForm(getDefaultForm(category))} className="premium-button rounded-full border border-[#f1dccd] bg-[#fffaf7] px-4 py-2 text-[11.5px] font-medium text-[#4d372f] shadow-[0_4px_10px_rgba(136,100,82,0.05)]">초기화</button>
+                        <button type="button" onClick={saveNote} className="premium-button rounded-full bg-[#f6c8b2] px-4 py-2 text-[11.5px] font-medium text-[#402c28] shadow-[0_8px_18px_rgba(216,170,145,0.24)]">저장</button>
                       </div>
                     </div>
                   </section>
@@ -616,9 +1191,15 @@ export default function HomePage() {
                         <div className="text-[10px] tracking-[0.3em] text-[#6c594f]">ARCHIVE</div>
                         <h2 className="mt-1 text-3xl font-semibold text-[#221d1b]">기록 아카이브</h2>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        <button type="button" onClick={() => setArchiveFilter("all")} className={`rounded-full px-3 py-2 text-sm ${archiveFilter === "all" ? "bg-[#2a201d] text-white" : "bg-white/70 text-[#2a201d]"}`}>전체</button>
-                        {(["whisky", "wine", "tea"] as const).map((item) => <button key={item} type="button" onClick={() => setArchiveFilter(item)} className={`rounded-full px-3 py-2 text-sm ${archiveFilter === item ? "bg-[#2a201d] text-white" : "bg-white/70 text-[#2a201d]"}`}>{categoryLabels[item]}</button>)}
+                      <div className="ml-auto flex items-center justify-end gap-3">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <button type="button" onClick={() => setArchiveFilter("all")} className={`rounded-full px-3 py-2 text-sm ${archiveFilter === "all" ? "bg-[#2a201d] text-white" : "bg-white/70 text-[#2a201d]"}`}>전체</button>
+                          {(["whisky", "wine", "tea"] as const).map((item) => <button key={item} type="button" onClick={() => setArchiveFilter(item)} className={`rounded-full px-3 py-2 text-sm ${archiveFilter === item ? "bg-[#2a201d] text-white" : "bg-white/70 text-[#2a201d]"}`}>{categoryLabels[item]}</button>)}
+                        </div>
+                        <div className="flex items-center gap-1 rounded-full border border-[#e4d7c8] bg-gradient-to-r from-[#fffaf6] via-[#f7f0ea] to-[#f0e4db] p-1.5 shadow-[0_6px_18px_rgba(72,52,42,0.08)]">
+                          <button type="button" onClick={() => setArchiveViewMode("card")} className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition-all ${archiveViewMode === "card" ? "bg-[#2a201d] text-white shadow-md shadow-[#2a201d]/20" : "text-[#42332d] hover:bg-white/70"}`} aria-label="카드 보기"><FontAwesomeIcon icon={faTableCellsLarge} className="text-sm" /></button>
+                          <button type="button" onClick={() => setArchiveViewMode("list")} className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition-all ${archiveViewMode === "list" ? "bg-[#2a201d] text-white shadow-md shadow-[#2a201d]/20" : "text-[#42332d] hover:bg-white/70"}`} aria-label="목록 보기"><FontAwesomeIcon icon={faList} className="text-sm" /></button>
+                        </div>
                       </div>
                     </div>
 
@@ -627,39 +1208,57 @@ export default function HomePage() {
                       <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="이름, 장소, 메모, 증류소 검색" className="w-full bg-transparent text-sm outline-none placeholder:text-[#8b766b]" />
                     </div>
 
-                    <div className="grid gap-4 lg:grid-cols-2">
-                      {filteredNotes.length ? filteredNotes.map((note) => (
-                        <button key={note.id} type="button" onClick={() => setSelectedNote(note)} className="w-full rounded-[28px] border border-[#e4d8ca] bg-white/80 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
-                          <div className="mb-3 flex items-center justify-between text-[11px] uppercase tracking-[0.2em] text-[#7a655d]">
-                            <span>{formatDate(note.date)}</span>
-                            <span>{categoryLabels[note.category]}</span>
+                    {archiveViewMode === "card" ? (
+                      <div className="grid gap-4 lg:grid-cols-2">
+                        {filteredNotes.length ? filteredNotes.map((note) => (
+                          <div key={note.id} className="w-full rounded-[28px] border border-[#e4d8ca] bg-white/80 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+                            <button type="button" onClick={() => setSelectedNote(note)} className="w-full text-left">
+                              <div className="mb-3 flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-[#7a655d]">
+                                <span>{categoryLabels[note.category]}</span>
+                                <span>{formatDate(note.date)}</span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <div className="h-16 w-16 overflow-hidden rounded-2xl bg-[#efe3d4]">
+                                  {note.photo || note.photoUrl ? (
+                                    <div className="relative h-full w-full">
+                                      <Image src={note.photo || note.photoUrl} alt={note.name} fill unoptimized className="object-cover" />
+                                    </div>
+                                  ) : (
+                                    <div className="flex h-full items-center justify-center text-xl text-[#9a7b5f]">{note.category === "whisky" ? "🥃" : note.category === "wine" ? "🍷" : "🍵"}</div>
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="truncate text-base font-semibold text-[#2a201d]">{note.name || "미기록"}</div>
+                                  <div className="mt-1 text-xs text-[#6d5d57]">{note.type || "종류 미기록"}</div>
+                                </div>
+                              </div>
+                            </button>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <div className="h-16 w-16 overflow-hidden rounded-2xl bg-[#efe3d4]">
+                        )) : <div className="rounded-3xl border border-dashed border-[#d7c5b3] bg-white/60 p-10 text-center text-[#5d4d47]">아직 저장된 기록이 없습니다.</div>}
+                      </div>
+                    ) : (
+                      <div className="overflow-hidden rounded-[24px]">
+                        {filteredNotes.length ? filteredNotes.map((note) => (
+                          <button key={note.id} type="button" onClick={() => setSelectedNote(note)} className="grid w-full grid-cols-[48px_minmax(0,1.7fr)_minmax(0,1.2fr)_minmax(0,1fr)_auto] items-center gap-2 border-b border-[#efe3d8] px-2 py-2 text-left last:border-b-0 hover:bg-white/40">
+                            <div className="h-10 w-10 overflow-hidden rounded-lg bg-[#efe3d4]">
                               {note.photo || note.photoUrl ? (
                                 <div className="relative h-full w-full">
                                   <Image src={note.photo || note.photoUrl} alt={note.name} fill unoptimized className="object-cover" />
                                 </div>
                               ) : (
-                                <div className="flex h-full items-center justify-center text-2xl text-[#9a7b5f]">{note.category === "whisky" ? "🥃" : note.category === "wine" ? "🍷" : "🍵"}</div>
+                                <div className="flex h-full items-center justify-center text-base text-[#9a7b5f]">{note.category === "whisky" ? "🥃" : note.category === "wine" ? "🍷" : "🍵"}</div>
                               )}
                             </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="truncate text-lg font-semibold text-[#2a201d]">{note.name || "미기록"}</div>
-                              <div className="mt-1 text-sm text-[#6d5d57]">{note.place || "장소 미기록"}</div>
-                              <div className="mt-2 flex flex-wrap gap-1"><span className="rounded-full bg-[#f1e6dc] px-2 py-1 text-[10px] text-[#513f39]">{`${note.type || "-"} ${note.regionName || note.distilleryName || ""}`.trim()}</span></div>
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-medium text-[#2a201d]">{note.name || "미기록"}</div>
                             </div>
-                          </div>
-                          <div className="mt-4 flex items-center justify-between">
-                            <div className="flex gap-2">
-                              <button type="button" onClick={(e) => { e.stopPropagation(); editNote(note); }} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-xs text-[#3d2d25]"><FontAwesomeIcon icon={faPen} className="mr-1" />수정</button>
-                              <button type="button" onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }} className="rounded-full bg-[#f7d8d2] px-3 py-1.5 text-xs text-[#612f28]"><FontAwesomeIcon icon={faTrash} className="mr-1" />삭제</button>
-                            </div>
-                            <span className="text-xs text-[#7e665d]">상세보기</span>
-                          </div>
-                        </button>
-                      )) : <div className="rounded-3xl border border-dashed border-[#d7c5b3] bg-white/60 p-10 text-center text-[#5d4d47]">아직 저장된 기록이 없습니다.</div>}
-                    </div>
+                            <div className="truncate text-xs text-[#5f4d46]">{note.type || "종류 미기록"}</div>
+                            <div className="truncate text-xs text-[#5f4d46]">{formatDate(note.date)}</div>
+                            <div className="text-right text-[9px] font-medium uppercase tracking-[0.12em] text-[#73615d]">{categoryLabels[note.category]}</div>
+                          </button>
+                        )) : <div className="p-10 text-center text-[#5d4d47]">아직 저장된 기록이 없습니다.</div>}
+                      </div>
+                    )}
                   </section>
                 )}
 
@@ -691,7 +1290,7 @@ export default function HomePage() {
                                 {day && <>
                                   <div className="text-xs font-semibold text-[#392d28]">{day}</div>
                                   <div className="mt-2 flex flex-wrap gap-1">
-                                    {dayNotes.slice(0, 2).map((note) => <span key={note.id} className={`inline-flex rounded-full px-1.5 py-0.5 text-[9px] ${note.category === "whisky" ? "bg-[#d8c0a0]" : note.category === "wine" ? "bg-[#e9d2d4]" : "bg-[#d4e0c8]"}`}>{note.category === "whisky" ? "W" : note.category === "wine" ? "V" : "T"}</span>)}
+                                    {dayNotes.slice(0, 2).map((note) => <span key={note.id} title={categoryLabels[note.category]} className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${note.category === "whisky" ? "bg-[#d8c0a0]" : note.category === "wine" ? "bg-[#e9d2d4]" : "bg-[#d4e0c8]"}`}>{note.category === "whisky" ? "🥃" : note.category === "wine" ? "🍷" : "🍵"}</span>)}
                                   </div>
                                 </>}
                               </button>
@@ -739,74 +1338,84 @@ export default function HomePage() {
                 <div className="text-[10px] tracking-[0.25em] text-[#7e665d]">DETAIL</div>
                 <h3 className="mt-1 text-2xl font-semibold text-[#2b201d]">{selectedNote.name || "테이스팅 기록"}</h3>
               </div>
-              <button type="button" onClick={() => setSelectedNote(null)} className="rounded-full bg-[#f1e6dc] px-3 py-1.5 text-sm text-[#3d2c25]">닫기</button>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => editNote(selectedNote)} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-xs text-[#3d2d25]"><FontAwesomeIcon icon={faPen} className="mr-1" />수정</button>
+                <button type="button" onClick={() => deleteNote(selectedNote.id)} className="rounded-full bg-[#f7d8d2] px-3 py-1.5 text-xs text-[#612f28]"><FontAwesomeIcon icon={faTrash} className="mr-1" />삭제</button>
+                <button type="button" onClick={() => setSelectedNote(null)} className="rounded-full bg-[#f1e6dc] px-3 py-1.5 text-sm text-[#3d2c25]">닫기</button>
+              </div>
             </div>
             <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
               <div className="space-y-4">
                 <div className="relative h-72 w-full overflow-hidden rounded-[22px]">
                   <Image src={selectedNote.photo || selectedNote.photoUrl} alt={selectedNote.name} fill unoptimized className="object-cover" />
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {selectedNote.category === "whisky" && (selectedNote.labelPhoto || selectedNote.labelPhotoUrl) && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (typeof globalThis !== "undefined" && typeof globalThis.alert === "function") {
-                          globalThis.alert(selectedNote.labelPhoto || selectedNote.labelPhotoUrl || "라벨 이미지 없음");
-                        }
-                      }}
-                      className="rounded-full bg-[#efe1cf] px-3 py-2 text-xs text-[#472f2a]"
-                    >
-                      라벨보기
+                {selectedNote.category === "whisky" && (selectedNote.labelPhoto || selectedNote.labelPhotoUrl) && (
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    <button type="button" onClick={() => toggleDetailPanel("label")} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-[10px] font-medium text-[#472f2a]">
+                      {detailPanels.label ? "라벨 숨기기" : "라벨 보기"}
                     </button>
-                  )}
-                  {selectedNote.category === "whisky" && detailDistillery && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (typeof globalThis !== "undefined" && typeof globalThis.alert === "function") {
-                          globalThis.alert(`${detailDistillery.name_ko}\n${detailDistillery.latitude}, ${detailDistillery.longitude}`);
-                        }
-                      }}
-                      className="rounded-full bg-[#efe1cf] px-3 py-2 text-xs text-[#472f2a]"
-                    >
-                      증류소
+                    {detailDistillery && (
+                      <button type="button" onClick={() => setSelectedNote((prev) => prev ? { ...prev, regionName: prev.regionName || detailDistillery.name_ko } : prev)} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-[10px] font-medium text-[#472f2a]">
+                        증류소
+                      </button>
+                    )}
+                  </div>
+                )}
+                {selectedNote.category === "wine" && selectedNote.regionName && (
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    <button type="button" onClick={() => toggleDetailPanel("region")} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-[10px] font-medium text-[#472f2a]">
+                      {detailPanels.region ? "산지 숨기기" : "산지 보기"}
                     </button>
-                  )}
-                  {selectedNote.category === "wine" && selectedNote.regionName && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (typeof globalThis !== "undefined" && typeof globalThis.alert === "function") {
-                          globalThis.alert(`산지: ${selectedNote.regionName}`);
-                        }
-                      }}
-                      className="rounded-full bg-[#efe1cf] px-3 py-2 text-xs text-[#472f2a]"
-                    >
-                      산지
-                    </button>
-                  )}
-                  {selectedNote.category === "tea" && selectedNote.regionName && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (typeof globalThis !== "undefined" && typeof globalThis.alert === "function") {
-                          globalThis.alert(`산지: ${selectedNote.regionName}`);
-                        }
-                      }}
-                      className="rounded-full bg-[#efe1cf] px-3 py-2 text-xs text-[#472f2a]"
-                    >
-                      산지
-                    </button>
-                  )}
-                </div>
+                  </div>
+                )}
+                {selectedNote.category === "tea" && (
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    {selectedNote.regionName && (
+                      <button type="button" onClick={() => toggleDetailPanel("region")} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-[10px] font-medium text-[#472f2a]">
+                        {detailPanels.region ? "산지 숨기기" : "산지 보기"}
+                      </button>
+                    )}
+                    {(selectedNote.teaLeafPhoto || selectedNote.teaLeafUrl) && (
+                      <button type="button" onClick={() => toggleDetailPanel("teaLeaf")} className="rounded-full bg-[#efe1cf] px-3 py-1.5 text-[10px] font-medium text-[#472f2a]">
+                        {detailPanels.teaLeaf ? "차엽 숨기기" : "차엽 보기"}
+                      </button>
+                    )}
+                  </div>
+                )}
+                {detailPanels.label && (selectedNote.labelPhoto || selectedNote.labelPhotoUrl) && (
+                  <div className="relative mb-3 h-56 overflow-hidden rounded-[22px] border border-[#e6d7c6] bg-white/60">
+                    <Image src={selectedNote.labelPhoto || selectedNote.labelPhotoUrl} alt="label" fill unoptimized className="object-contain p-4" />
+                  </div>
+                )}
+                {detailPanels.teaLeaf && (selectedNote.teaLeafPhoto || selectedNote.teaLeafUrl) && (
+                  <div className="relative mb-3 h-56 overflow-hidden rounded-[22px] border border-[#e6d7c6] bg-white/60">
+                    <Image src={selectedNote.teaLeafPhoto || selectedNote.teaLeafUrl} alt="tea leaf" fill unoptimized className="object-contain p-4" />
+                  </div>
+                )}
+                {detailPanels.region && selectedNote.regionName && (() => {
+                  const archiveMap = getArchiveRegionMapProps(selectedNote);
+                  if (!archiveMap) return null;
+                  return (
+                    <div className="mb-3 h-52 overflow-hidden rounded-[22px] border border-[#e6d7c6] bg-white/60">
+                      <RegionBlockMap
+                        items={archiveMap.items}
+                        activeId={selectedNote.regionName}
+                        showMap
+                        mapShape={archiveMap.mapShape}
+                        geoJson={archiveMap.geoJson}
+                        onSelect={() => undefined}
+                      />
+                    </div>
+                  );
+                })()}
               </div>
-              <div className="space-y-4 text-sm text-[#3c2d26]">
+              <div className="user-serif space-y-4 text-sm text-[#3c2d26]">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">날짜</div><div className="mt-2 font-semibold">{formatDate(selectedNote.date)}</div></div>
                   <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">장소</div><div className="mt-2 font-semibold">{selectedNote.place || "-"}</div></div>
                   <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">마신 사람</div><div className="mt-2 font-semibold">{selectedNote.people || "-"}</div></div>
                   <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">종류</div><div className="mt-2 font-semibold">{selectedNote.type || "-"}</div></div>
+                  <div className="rounded-2xl bg-[#f5eee8] p-3 col-span-2"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">저장된 산지</div><div className="mt-2 font-semibold">{getSavedRegionLabel(selectedNote)}</div></div>
                 </div>
                 <div className="rounded-2xl bg-[#f8f2eb] p-4">
                   <div className="mb-2 font-semibold text-[#2d2320]">기본 정보</div>
@@ -814,9 +1423,46 @@ export default function HomePage() {
                     <p>향: {selectedNote.aroma || "-"}</p>
                     <p>맛: {selectedNote.taste || "-"}</p>
                     <p>피니시: {selectedNote.finish || "-"}</p>
+                    <p>산지: {getSavedRegionLabel(selectedNote)}</p>
                     <p>메모: {selectedNote.notes || "-"}</p>
                   </div>
                 </div>
+                {selectedNote.category === "wine" && (
+                  <div className="rounded-2xl bg-[#f8f2eb] p-4">
+                    <div className="mb-3 font-semibold text-[#2d2320]">맛 프로필</div>
+                    <div className="space-y-3">
+                      {([
+                        ["body", "바디"],
+                        ["acidity", "산미"],
+                        ["tannin", "탄닌"],
+                        ["alcohol", "알코올"],
+                        ["sweetness", "당도"],
+                        ["complexity", "복합성"],
+                        ["balance", "밸런스"],
+                      ] as const).map(([key, label]) => {
+                        const value = Number(selectedNote[key]) || 1;
+                        const fill = (value / 5) * 100;
+                        return (
+                          <div key={key}>
+                            <div className="mb-1 flex items-center justify-between text-[11px] text-[#6b554d]">
+                              <span>{label}</span>
+                              <span>{value}/5</span>
+                            </div>
+                            <div className="h-2.5 w-full overflow-hidden rounded-full bg-[#eadbcd]">
+                              <div
+                                className="h-full rounded-full transition-all duration-300"
+                                style={{
+                                  width: `${fill}%`,
+                                  background: "linear-gradient(90deg, #be8660 0%, #9a5f3d 100%)",
+                                }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

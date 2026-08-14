@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tasting Journal",
+  title: "A Slow, Lovely Pour",
   description: "Whisky, wine, and tea tasting notes with archive and calendar",
 };
 
