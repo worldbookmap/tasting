@@ -711,17 +711,26 @@ const getArchiveRegionMapProps = (note: Pick<Note, "category" | "regionName">) =
 
 const postNotes = async (payload: { note: Note } | { deleteId: string }) => {
   try {
+    const body = JSON.stringify(payload);
+    if (new Blob([body]).size > 4 * 1024 * 1024) {
+      return { ok: false as const, error: "첨부한 사진의 전체 용량이 너무 큽니다. 사진 수를 줄인 뒤 다시 시도해 주세요." };
+    }
+
     const response = await fetch("/api/notes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body,
     });
     const result = await response.json().catch(() => null);
 
     if (!response.ok) {
       return {
         ok: false as const,
-        error: typeof result?.error === "string" ? result.error : "서버에서 저장 요청을 처리하지 못했습니다.",
+        error: response.status === 413
+          ? "첨부한 사진의 전체 용량이 너무 큽니다. 사진 수를 줄인 뒤 다시 시도해 주세요."
+          : typeof result?.error === "string"
+            ? result.error
+            : `서버에서 저장 요청을 처리하지 못했습니다. (${response.status})`,
       };
     }
 
@@ -729,6 +738,44 @@ const postNotes = async (payload: { note: Note } | { deleteId: string }) => {
   } catch {
     return { ok: false as const, error: "서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요." };
   }
+};
+
+const imageFileToDataUrl = async (file: File) => {
+  const image = await createImageBitmap(file);
+  let compressed: Blob | null = null;
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const maxDimension = 1600 * (0.82 ** attempt);
+    const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.width * scale));
+    canvas.height = Math.max(1, Math.round(image.height * scale));
+
+    const context = canvas.getContext("2d");
+    if (!context) {
+      image.close();
+      throw new Error("사진을 처리할 수 없습니다.");
+    }
+
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    compressed = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, "image/jpeg", Math.max(0.5, 0.84 - attempt * 0.08));
+    });
+
+    if (compressed && compressed.size <= 700 * 1024) break;
+  }
+
+  image.close();
+  if (!compressed) throw new Error("사진을 처리할 수 없습니다.");
+
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("사진을 읽을 수 없습니다."));
+    reader.readAsDataURL(compressed);
+  });
 };
 
 export default function HomePage() {
@@ -844,15 +891,19 @@ export default function HomePage() {
     setShowToast(true);
   };
 
-  const handleUpload = (event: React.ChangeEvent<HTMLInputElement>, target: "photo" | "labelPhoto" | "teaLeafPhoto", urlKey: "photoUrl" | "labelPhotoUrl" | "teaLeafUrl") => {
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>, target: "photo" | "labelPhoto" | "teaLeafPhoto", urlKey: "photoUrl" | "labelPhotoUrl" | "teaLeafUrl") => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      updateField(target, String(reader.result));
+
+    try {
+      const dataUrl = await imageFileToDataUrl(file);
+      updateField(target, dataUrl);
       updateField(urlKey, "");
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      globalThis.alert(error instanceof Error ? error.message : "사진을 처리할 수 없습니다.");
+    } finally {
+      event.target.value = "";
+    }
   };
 
   const handleArchiveImageUpload = (
@@ -862,11 +913,13 @@ export default function HomePage() {
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setArchiveDraft((prev) => (prev ? { ...prev, [target]: String(reader.result), [urlKey]: "" } : prev));
-    };
-    reader.readAsDataURL(file);
+    imageFileToDataUrl(file)
+      .then((dataUrl) => {
+        setArchiveDraft((prev) => (prev ? { ...prev, [target]: dataUrl, [urlKey]: "" } : prev));
+      })
+      .catch((error) => {
+        globalThis.alert(error instanceof Error ? error.message : "사진을 처리할 수 없습니다.");
+      });
     event.target.value = "";
   };
 
