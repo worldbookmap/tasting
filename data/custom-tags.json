@@ -10,7 +10,9 @@
     "finish": []
   },
   "tea": {
-    "aroma": [],
+    "aroma": [
+      "호향"
+    ],
     "taste": [],
     "finish": []
   }
