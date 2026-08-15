@@ -25,36 +25,45 @@ async function writeNotes(nextNotes: unknown[]) {
 async function syncToGitHub(nextNotes: unknown[]) {
   if (!token) return;
 
-  const githubPath = "data/tasting-notes.json";
-  const githubApi = `https://api.github.com/repos/${repo}/contents/${githubPath}`;
-  const headers = {
-    Authorization: `Bearer ${token}`,
-    Accept: "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
-  };
+  try {
+    const githubPath = "data/tasting-notes.json";
+    const githubApi = `https://api.github.com/repos/${repo}/contents/${githubPath}`;
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    };
 
-  const current = await fetch(githubApi, { headers });
-  let sha: string | undefined;
+    const current = await fetch(githubApi, { headers });
+    let sha: string | undefined;
 
-  if (current.ok) {
-    const fileData = await current.json();
-    sha = fileData.sha;
+    if (current.ok) {
+      const fileData = await current.json();
+      sha = fileData.sha;
+    }
+
+    const content = Buffer.from(JSON.stringify(nextNotes, null, 2), "utf8").toString("base64");
+
+    const response = await fetch(githubApi, {
+      method: "PUT",
+      headers: {
+        ...headers,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message: "Update tasting notes",
+        content,
+        sha,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "");
+      console.warn("GitHub sync failed; local save was kept.", errorText || response.statusText);
+    }
+  } catch (error) {
+    console.warn("GitHub sync failed; local save was kept.", error);
   }
-
-  const content = Buffer.from(JSON.stringify(nextNotes, null, 2), "utf8").toString("base64");
-
-  await fetch(githubApi, {
-    method: "PUT",
-    headers: {
-      ...headers,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      message: "Update tasting notes",
-      content,
-      sha,
-    }),
-  });
 }
 
 export async function GET() {
@@ -68,31 +77,39 @@ type NoteRecord = {
 };
 
 export async function POST(request: Request) {
-  const body = await request.json();
+  try {
+    const body = await request.json();
 
-  const currentNotes = await readNotes();
-  let nextNotes: NoteRecord[] = [...(Array.isArray(currentNotes) ? currentNotes : [])];
+    const currentNotes = await readNotes();
+    let nextNotes: NoteRecord[] = [...(Array.isArray(currentNotes) ? currentNotes : [])];
 
-  if (body?.deleteId) {
-    nextNotes = nextNotes.filter((note) => note.id !== body.deleteId);
-  } else if (body?.note) {
-    const incoming = body.note as NoteRecord;
-    const targetId = incoming.id;
+    if (body?.deleteId) {
+      nextNotes = nextNotes.filter((note) => note.id !== body.deleteId);
+    } else if (body?.note) {
+      const incoming = body.note as NoteRecord;
+      const targetId = incoming.id;
 
-    if (targetId) {
-      const existingIndex = nextNotes.findIndex((note) => note.id === targetId);
-      if (existingIndex >= 0) {
-        nextNotes = nextNotes.map((note) => (note.id === targetId ? { ...note, ...incoming } : note));
+      if (targetId) {
+        const existingIndex = nextNotes.findIndex((note) => note.id === targetId);
+        if (existingIndex >= 0) {
+          nextNotes = nextNotes.map((note) => (note.id === targetId ? { ...note, ...incoming } : note));
+        } else {
+          nextNotes = [incoming, ...nextNotes];
+        }
       } else {
         nextNotes = [incoming, ...nextNotes];
       }
-    } else {
-      nextNotes = [incoming, ...nextNotes];
     }
+
+    await writeNotes(nextNotes);
+    await syncToGitHub(nextNotes);
+
+    return NextResponse.json({ ok: true, count: nextNotes.length });
+  } catch (error) {
+    console.error("Failed to save tasting note.", error);
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500 },
+    );
   }
-
-  await writeNotes(nextNotes);
-  await syncToGitHub(nextNotes);
-
-  return NextResponse.json({ ok: true, count: nextNotes.length });
 }
