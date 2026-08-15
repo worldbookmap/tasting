@@ -1,0 +1,17 @@
+{
+  "whisky": {
+    "aroma": [],
+    "taste": [],
+    "finish": []
+  },
+  "wine": {
+    "aroma": [],
+    "taste": [],
+    "finish": []
+  },
+  "tea": {
+    "aroma": [],
+    "taste": [],
+    "finish": []
+  }
+}

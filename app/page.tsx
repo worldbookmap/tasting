@@ -328,8 +328,16 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.02";
+const APP_VERSION = "1.03";
 type Category = keyof typeof categoryLabels;
+type TagField = "aroma" | "taste" | "finish";
+type CustomTags = Record<Category, Record<TagField, string[]>>;
+
+const createEmptyCustomTags = (): CustomTags => ({
+  whisky: { aroma: [], taste: [], finish: [] },
+  wine: { aroma: [], taste: [], finish: [] },
+  tea: { aroma: [], taste: [], finish: [] },
+});
 
 type Distillery = {
   name: string;
@@ -801,21 +809,31 @@ export default function HomePage() {
   const [archiveDraft, setArchiveDraft] = useState<Note | null>(null);
   const [calendarSelectedDate, setCalendarSelectedDate] = useState<string | null>(null);
   const [calendarDetailDate, setCalendarDetailDate] = useState<string | null>(null);
-  const [tagModal, setTagModal] = useState<{ field: "aroma" | "taste" | "finish"; value: string } | null>(null);
+  const [tagModal, setTagModal] = useState<{ field: TagField; value: string } | null>(null);
+  const [customTags, setCustomTags] = useState<CustomTags>(createEmptyCustomTags);
+  const [savingTags, setSavingTags] = useState(false);
 
   const wineCountryOptions = useMemo(
     () => wineCountryGroups.find((group) => group.name === selectedCountryGroup)?.countries ?? ["프랑스"],
     [selectedCountryGroup],
   );
 
-  const tagOptions = useMemo(() => getTagOptions(category), [category]);
-
   useEffect(() => {
     const load = async () => {
-      const response = await fetch("/api/notes");
-      if (!response.ok) return;
-      const result = await response.json();
-      setNotes(Array.isArray(result) ? result : []);
+      const [notesResponse, tagsResponse] = await Promise.all([
+        fetch("/api/notes"),
+        fetch("/api/tags"),
+      ]);
+
+      if (notesResponse.ok) {
+        const result = await notesResponse.json();
+        setNotes(Array.isArray(result) ? result : []);
+      }
+
+      if (tagsResponse.ok) {
+        const result = await tagsResponse.json();
+        setCustomTags(result as CustomTags);
+      }
     };
     load();
   }, []);
@@ -873,11 +891,11 @@ export default function HomePage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const addTag = (field: "aroma" | "taste" | "finish", value: string) => {
+  const addTag = (field: TagField, value: string) => {
     updateField(field, form[field] ? `${form[field]}, ${value}` : value);
   };
 
-  const addCustomTagsToField = (field: "aroma" | "taste" | "finish", rawValue: string) => {
+  const addCustomTags = async (field: TagField, rawValue: string) => {
     const parsedTags = rawValue
       .split(",")
       .map((tag) => tag.trim())
@@ -885,11 +903,36 @@ export default function HomePage() {
 
     if (!parsedTags.length) return;
 
-    const mergedTags = Array.from(new Set([...(form[field] ? form[field].split(",").map((tag) => tag.trim()).filter(Boolean) : []), ...parsedTags]));
-    updateField(field, mergedTags.join(", "));
-    setTagModal(null);
-    setToastMessage("태그 추가 완료");
-    setShowToast(true);
+    const existingTags = new Set([...getTagOptions(category), ...customTags[category][field]]);
+    const newTags = Array.from(new Set(parsedTags)).filter((tag) => !existingTags.has(tag));
+    if (!newTags.length) {
+      globalThis.alert("이미 등록된 칩입니다.");
+      return;
+    }
+
+    setSavingTags(true);
+    try {
+      const response = await fetch("/api/tags", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category, field, tags: newTags }),
+      });
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        globalThis.alert(result?.error || `칩을 저장하지 못했습니다. (${response.status})`);
+        return;
+      }
+
+      setCustomTags(result.all as CustomTags);
+      setTagModal(null);
+      setToastMessage("새 칩 저장 완료");
+      setShowToast(true);
+    } catch {
+      globalThis.alert("칩 저장 서버에 연결할 수 없습니다.");
+    } finally {
+      setSavingTags(false);
+    }
   };
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>, target: "photo" | "labelPhoto" | "teaLeafPhoto", urlKey: "photoUrl" | "labelPhotoUrl" | "teaLeafUrl") => {
@@ -1367,7 +1410,7 @@ export default function HomePage() {
                               <button type="button" onClick={() => setTagModal({ field, value: "" })} className="rounded-full border border-white/60 bg-white/25 px-1.5 py-0.5 text-[7px] font-medium tracking-[0.06em] text-[#64534d] shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_2px_7px_rgba(122,92,75,0.04)] backdrop-blur-sm transition-all duration-200 hover:bg-white/35">칩 추가</button>
                             </div>
                             <div className="mb-1 flex flex-wrap gap-[2px]">
-                              {tagOptions.map((tag) => <button key={tag} type="button" onClick={() => addTag(field, tag)} className="premium-tag rounded-full border border-[#f1cfba] bg-[#fff6f2]/90 px-[4px] py-[2px] text-[10px] font-medium text-[#493a34] leading-[1.1] tracking-[-0.02em] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#e0a986] hover:bg-[#fdeee5]">{tag}</button>)}
+                              {Array.from(new Set([...getTagOptions(category), ...customTags[category][field]])).map((tag) => <button key={tag} type="button" onClick={() => addTag(field, tag)} className="premium-tag rounded-full border border-[#f1cfba] bg-[#fff6f2]/90 px-[4px] py-[2px] text-[10px] font-medium text-[#493a34] leading-[1.1] tracking-[-0.02em] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#e0a986] hover:bg-[#fdeee5]">{tag}</button>)}
                             </div>
                             <textarea value={form[field]} onChange={(e) => updateField(field, e.target.value)} className="form-label-textarea" />
                           </div>
@@ -2083,7 +2126,7 @@ export default function HomePage() {
               </label>
               <div className="flex justify-end gap-2">
                 <button type="button" onClick={() => setTagModal(null)} className="document-button document-button--ghost min-h-0 px-3 py-1.75 text-[10px]">취소</button>
-                <button type="button" onClick={() => addCustomTagsToField(tagModal.field, tagModal.value)} className="document-button document-button--primary min-h-0 px-3 py-1.75 text-[10px]">추가하기</button>
+                <button type="button" disabled={savingTags} onClick={() => addCustomTags(tagModal.field, tagModal.value)} className="document-button document-button--primary min-h-0 px-3 py-1.75 text-[10px] disabled:cursor-wait disabled:opacity-60">{savingTags ? "저장 중" : "추가하기"}</button>
               </div>
             </div>
           </div>
