@@ -216,11 +216,13 @@ function CustomSelect<T extends string>({
 
 function CustomMultiSelect<T extends string>({
   values,
+  displayValues = values,
   options,
   onChange,
   label,
 }: {
   values: T[];
+  displayValues?: string[];
   options: readonly T[];
   onChange: (values: T[]) => void;
   label: string;
@@ -247,7 +249,7 @@ function CustomMultiSelect<T extends string>({
         className="flex min-h-[40px] w-full items-center justify-between gap-2 rounded-[14px] border border-[#f4d7c8] bg-[#fffaf9]/90 px-3 py-2 text-left text-[#2d2522] shadow-[0_4px_12px_rgba(130,96,79,0.05)] transition-all duration-200 hover:border-[#e6b69d] focus:outline-none"
       >
         <span className="flex min-w-0 flex-wrap gap-1">
-          {values.length ? values.map((value) => (
+          {displayValues.length ? displayValues.map((value) => (
             <span key={value} className="inline-flex items-center gap-1 rounded-full bg-[#fce9e3] px-2 py-0.5 text-[10px] font-medium text-[#5c463f]">
               <span className="text-[8px]">✓</span>{value}
             </span>
@@ -399,7 +401,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.06";
+const APP_VERSION = "1.07";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -1324,6 +1326,10 @@ export default function HomePage() {
                             <CustomMultiSelect
                               label="마신 사람"
                               values={parsePeople(form.people) as (typeof peopleOptions)[number][]}
+                              displayValues={parsePeople(form.people).flatMap((person) => {
+                                if (person !== "직접입력") return person;
+                                return form.peopleCustom.trim() || "직접입력";
+                              })}
                               options={peopleOptions}
                               onChange={(values) => {
                                 updateField("people", values.join(", "));
