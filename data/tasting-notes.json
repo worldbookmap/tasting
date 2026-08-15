@@ -1,17 +1,5 @@
 [
   {
-    "id": "test-123",
-    "category": "whisky",
-    "name": "테스트",
-    "date": "2026-08-15",
-    "place": "테스트 장소",
-    "notes": "테스트 메모",
-    "type": "싱글몰트",
-    "distilleryName": "테스트 증류소",
-    "regionName": "테스트 지역",
-    "people": "진욱"
-  },
-  {
     "id": "ui-delete-check-1786720028112",
     "category": "whisky",
     "date": "2026-08-15",
