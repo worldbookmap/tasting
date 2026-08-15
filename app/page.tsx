@@ -709,6 +709,28 @@ const getArchiveRegionMapProps = (note: Pick<Note, "category" | "regionName">) =
   return null;
 };
 
+const postNotes = async (payload: { note: Note } | { deleteId: string }) => {
+  try {
+    const response = await fetch("/api/notes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const result = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      return {
+        ok: false as const,
+        error: typeof result?.error === "string" ? result.error : "서버에서 저장 요청을 처리하지 못했습니다.",
+      };
+    }
+
+    return { ok: true as const };
+  } catch {
+    return { ok: false as const, error: "서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요." };
+  }
+};
+
 export default function HomePage() {
   const [view, setView] = useState<"landing" | "tasting" | "archive" | "calendar">("landing");
   const [category, setCategory] = useState<Category>("whisky");
@@ -873,15 +895,11 @@ export default function HomePage() {
       type: form.type || (category === "whisky" ? "싱글몰트" : category === "wine" ? "레드" : "녹차"),
     };
 
-    const response = await fetch("/api/notes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ note: record }),
-    });
+    const result = await postNotes({ note: record });
 
-    if (!response.ok) {
+    if (!result.ok) {
       if (typeof globalThis !== "undefined" && typeof globalThis.alert === "function") {
-        globalThis.alert("저장에 실패했습니다.");
+        globalThis.alert(`저장에 실패했습니다.\n${result.error}`);
       }
       return;
     }
@@ -897,15 +915,11 @@ export default function HomePage() {
   const confirmDeleteNote = async () => {
     if (!deleteConfirm) return;
 
-    const response = await fetch("/api/notes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ deleteId: deleteConfirm.id }),
-    });
+    const result = await postNotes({ deleteId: deleteConfirm.id });
 
-    if (!response.ok) {
+    if (!result.ok) {
       if (typeof globalThis !== "undefined" && typeof globalThis.alert === "function") {
-        globalThis.alert("삭제에 실패했습니다.");
+        globalThis.alert(`삭제에 실패했습니다.\n${result.error}`);
       }
       setDeleteConfirm(null);
       return;
@@ -951,15 +965,11 @@ export default function HomePage() {
       distilleryName: archiveDraft.selectedDistillery?.name_ko || archiveDraft.distilleryName,
     };
 
-    const response = await fetch("/api/notes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ note: draft }),
-    });
+    const result = await postNotes({ note: draft });
 
-    if (!response.ok) {
+    if (!result.ok) {
       if (typeof globalThis !== "undefined" && typeof globalThis.alert === "function") {
-        globalThis.alert("수정에 실패했습니다.");
+        globalThis.alert(`수정에 실패했습니다.\n${result.error}`);
       }
       return;
     }

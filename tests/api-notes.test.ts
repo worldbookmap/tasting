@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, test } from "node:test";
@@ -11,59 +11,35 @@ const originalToken = process.env.GITHUB_TOKEN;
 
 afterEach(() => {
   process.chdir(originalCwd);
-  process.env.GITHUB_TOKEN = originalToken;
   globalThis.fetch = originalFetch;
+
+  if (originalToken === undefined) {
+    delete process.env.GITHUB_TOKEN;
+  } else {
+    process.env.GITHUB_TOKEN = originalToken;
+  }
 });
 
-test("POST keeps local save working when GitHub sync fails", async () => {
-  const tempDir = mkdtempSync(path.join(tmpdir(), "tasting-notes-"));
-  process.chdir(tempDir);
-  process.env.GITHUB_TOKEN = "invalid-token";
+test("POST saves a note through the GitHub Contents API", async () => {
+  process.chdir(mkdtempSync(path.join(tmpdir(), "tasting-notes-")));
+  process.env.GITHUB_TOKEN = "test-token";
 
-  globalThis.fetch = async (input: RequestInfo | URL) => {
-    const url = String(input);
-    if (url.includes("api.github.com")) {
-      throw new Error("GitHub sync unavailable");
+  let savedPayload: { content?: string; sha?: string } | undefined;
+  globalThis.fetch = async (_input: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === "PUT") {
+      savedPayload = JSON.parse(String(init.body));
+      return new Response(JSON.stringify({ content: { sha: "next-sha" } }), { status: 200 });
     }
 
-    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    return new Response(
+      JSON.stringify({ content: Buffer.from("[]", "utf8").toString("base64"), sha: "current-sha" }),
+      { status: 200 },
+    );
   };
 
   const routeUrl = pathToFileURL(path.join(originalCwd, "app/api/notes/route.ts")).href + `?test=${Date.now()}`;
   const { POST } = await import(routeUrl);
-
-  const note = {
-    id: "test-123",
-    category: "whisky",
-    date: "2026-08-15",
-    place: "테스트 장소",
-    people: "진욱",
-    type: "싱글몰트",
-    name: "테스트 위스키",
-    photo: "",
-    photoUrl: "",
-    labelPhoto: "",
-    labelPhotoUrl: "",
-    selectedDistillery: null,
-    distilleryName: "테스트 증류소",
-    regionName: "스코틀랜드",
-    teaVariety: "",
-    teaLeafPhoto: "",
-    teaLeafUrl: "",
-    aroma: "오크",
-    taste: "달콤함",
-    finish: "긴 여운",
-    body: 3,
-    acidity: 3,
-    tannin: 3,
-    alcohol: 3,
-    sweetness: 3,
-    complexity: 3,
-    balance: 3,
-    notes: "테스트 메모",
-    createdAt: "2026-08-15T00:00:00.000Z",
-  };
-
+  const note = { id: "test-123", category: "whisky", name: "테스트 위스키" };
   const response = await POST(
     new Request("http://localhost/api/notes", {
       method: "POST",
@@ -73,9 +49,9 @@ test("POST keeps local save working when GitHub sync fails", async () => {
   );
 
   assert.equal(response.status, 200);
-
-  const saved = JSON.parse(readFileSync(path.join(tempDir, "data", "tasting-notes.json"), "utf8"));
-  assert.equal(Array.isArray(saved), true);
-  assert.equal(saved[0].id, "test-123");
-  assert.equal(saved[0].name, "테스트 위스키");
+  assert.equal(savedPayload?.sha, "current-sha");
+  assert.deepEqual(
+    JSON.parse(Buffer.from(savedPayload?.content ?? "", "base64").toString("utf8")),
+    [note],
+  );
 });
