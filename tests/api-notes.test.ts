@@ -32,7 +32,7 @@ test("POST saves a note through the GitHub Contents API", async () => {
     }
 
     return new Response(
-      JSON.stringify({ content: Buffer.from("[]", "utf8").toString("base64"), sha: "current-sha" }),
+      JSON.stringify({ content: Buffer.from("[]", "utf8").toString("base64"), encoding: "base64", sha: "current-sha" }),
       { status: 200 },
     );
   };
@@ -53,5 +53,46 @@ test("POST saves a note through the GitHub Contents API", async () => {
   assert.deepEqual(
     JSON.parse(Buffer.from(savedPayload?.content ?? "", "base64").toString("utf8")),
     [note],
+  );
+});
+
+test("POST preserves notes when the GitHub file is too large for inline content", async () => {
+  process.chdir(mkdtempSync(path.join(tmpdir(), "tasting-notes-large-")));
+  process.env.GITHUB_TOKEN = "test-token";
+
+  const existingNote = { id: "existing", category: "wine", name: "기존 기록" };
+  let savedPayload: { content?: string; sha?: string } | undefined;
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === "PUT") {
+      savedPayload = JSON.parse(String(init.body));
+      return new Response(JSON.stringify({ content: { sha: "next-sha" } }), { status: 200 });
+    }
+
+    if (String(input) === "https://example.com/tasting-notes.json") {
+      return new Response(JSON.stringify([existingNote]), { status: 200 });
+    }
+
+    return new Response(
+      JSON.stringify({ content: "", encoding: "none", download_url: "https://example.com/tasting-notes.json", sha: "large-file-sha" }),
+      { status: 200 },
+    );
+  };
+
+  const routeUrl = pathToFileURL(path.join(originalCwd, "app/api/notes/route.ts")).href + `?large=${Date.now()}`;
+  const { POST } = await import(routeUrl);
+  const newNote = { id: "new", category: "tea", name: "새 기록" };
+  const response = await POST(
+    new Request("http://localhost/api/notes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ note: newNote }),
+    }),
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(savedPayload?.sha, "large-file-sha");
+  assert.deepEqual(
+    JSON.parse(Buffer.from(savedPayload?.content ?? "", "base64").toString("utf8")),
+    [newNote, existingNote],
   );
 });

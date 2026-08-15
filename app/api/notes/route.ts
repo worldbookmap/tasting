@@ -21,8 +21,10 @@ async function readLocalNotes(): Promise<NotesSnapshot> {
   try {
     const raw = await fs.readFile(dataPath, "utf8");
     const parsed = JSON.parse(raw || "[]");
-    return { notes: Array.isArray(parsed) ? parsed : [] };
-  } catch {
+    if (!Array.isArray(parsed)) throw new Error("로컬 기록 파일 형식이 올바르지 않습니다.");
+    return { notes: parsed };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     await fs.mkdir(path.dirname(dataPath), { recursive: true });
     await fs.writeFile(dataPath, "[]", "utf8");
     return { notes: [] };
@@ -49,9 +51,23 @@ async function readGitHubNotes(): Promise<NotesSnapshot> {
   }
 
   const fileData = await response.json();
-  const raw = Buffer.from(fileData.content ?? "", "base64").toString("utf8");
-  const parsed = JSON.parse(raw || "[]");
-  return { notes: Array.isArray(parsed) ? parsed : [], sha: fileData.sha };
+  let raw: string;
+
+  if (fileData.encoding === "base64" && fileData.content) {
+    raw = Buffer.from(fileData.content, "base64").toString("utf8");
+  } else if (fileData.download_url) {
+    const rawResponse = await fetch(fileData.download_url, { headers: githubHeaders, cache: "no-store" });
+    if (!rawResponse.ok) {
+      throw new Error(`GitHub 기록 원문을 불러오지 못했습니다. (${rawResponse.status})`);
+    }
+    raw = await rawResponse.text();
+  } else {
+    throw new Error("GitHub 기록 파일의 내용을 확인할 수 없습니다.");
+  }
+
+  const parsed = JSON.parse(raw);
+  if (!Array.isArray(parsed)) throw new Error("GitHub 기록 파일 형식이 올바르지 않습니다.");
+  return { notes: parsed, sha: fileData.sha };
 }
 
 async function writeGitHubNotes(nextNotes: NoteRecord[], sha?: string) {
@@ -101,6 +117,10 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+
+    if (!body?.deleteId && !body?.note) {
+      return NextResponse.json({ ok: false, error: "저장할 기록 정보가 없습니다." }, { status: 400 });
+    }
 
     const { notes: currentNotes, sha } = await readNotes();
     let nextNotes: NoteRecord[] = [...currentNotes];
