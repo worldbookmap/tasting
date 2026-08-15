@@ -214,6 +214,77 @@ function CustomSelect<T extends string>({
   );
 }
 
+function CustomMultiSelect<T extends string>({
+  values,
+  options,
+  onChange,
+  label,
+}: {
+  values: T[];
+  options: readonly T[];
+  onChange: (values: T[]) => void;
+  label: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative w-full">
+      <button
+        type="button"
+        aria-label={label}
+        aria-expanded={open}
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex min-h-[40px] w-full items-center justify-between gap-2 rounded-[14px] border border-[#f4d7c8] bg-[#fffaf9]/90 px-3 py-2 text-left text-[#2d2522] shadow-[0_4px_12px_rgba(130,96,79,0.05)] transition-all duration-200 hover:border-[#e6b69d] focus:outline-none"
+      >
+        <span className="flex min-w-0 flex-wrap gap-1">
+          {values.length ? values.map((value) => (
+            <span key={value} className="inline-flex items-center gap-1 rounded-full bg-[#fce9e3] px-2 py-0.5 text-[10px] font-medium text-[#5c463f]">
+              <span className="text-[8px]">✓</span>{value}
+            </span>
+          )) : <span className="text-[12px] text-[#86756d]">선택</span>}
+        </span>
+        <svg viewBox="0 0 20 20" fill="none" className={`h-4 w-4 shrink-0 text-[#584b45] transition-transform duration-200 ${open ? "rotate-180" : ""}`} aria-hidden="true">
+          <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="custom-select-scroll absolute left-0 right-0 top-full z-30 mt-2 max-h-64 overflow-y-auto rounded-[18px] border border-[#e7d9c8] bg-[rgba(255,250,247,0.98)] p-1 shadow-[0_18px_40px_rgba(58,42,33,0.12)] backdrop-blur-sm">
+          {options.map((option) => {
+            const selected = values.includes(option);
+            return (
+              <button
+                key={option}
+                type="button"
+                role="checkbox"
+                aria-checked={selected}
+                onClick={() => onChange(selected ? values.filter((value) => value !== option) : [...values, option])}
+                className={`group flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-[12px] transition-colors ${selected ? "bg-[#fbe7db] text-[#2d201d]" : "text-[#4b3c35] hover:bg-[#fff5ee]"}`}
+              >
+                <span className="flex items-center gap-2">
+                  <span className={`inline-flex h-4 w-4 items-center justify-center rounded border text-[9px] ${selected ? "border-[#9b6d48] bg-[#9b6d48] text-white" : "border-[#d4b89f] bg-white text-transparent"}`}>✓</span>
+                  {option}
+                </span>
+                {selected && <span className="text-[9px] font-semibold text-[#725b4e]">선택됨</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function WhiskyPinMap({ distillery }: { distillery: Distillery | null }) {
   if (!distillery) return null;
 
@@ -328,7 +399,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.04";
+const APP_VERSION = "1.06";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -388,7 +459,25 @@ const teaTags = ["꽃향", "시원함", "풀잎", "대추", "볶음향", "과실
 const whiskyKinds = ["싱글몰트", "블렌디드", "블렌디드몰트", "싱글그레인", "기타"];
 const wineKinds = ["스파클링", "화이트", "레드", "로제", "디저트", "기타"];
 const teaKinds = ["녹차", "백차", "황차", "청차", "흑차"];
-const peopleOptions = ["진욱", "지선", "함께", "직접입력"];
+const peopleOptions = ["진욱", "지선", "직접입력"] as const;
+
+const parsePeople = (value: string) => value.split(",").map((person) => person.trim()).filter(Boolean);
+
+const resolvePeople = (value: string, customValue: string) => {
+  const selected = parsePeople(value).filter((person) => person !== "직접입력");
+  const custom = parsePeople(customValue);
+  return Array.from(new Set([...selected, ...custom])).join(", ");
+};
+
+const getPeopleFormValues = (value: string) => {
+  if (value === "함께") return { people: "진욱, 지선", peopleCustom: "" };
+
+  const people = parsePeople(value);
+  const selected: string[] = people.filter((person) => person === "진욱" || person === "지선");
+  const custom = people.filter((person) => person !== "진욱" && person !== "지선");
+  if (custom.length) selected.push("직접입력");
+  return { people: selected.join(", "), peopleCustom: custom.join(", ") };
+};
 type RegionPoint = {
   name: string;
   center: [number, number];
@@ -986,7 +1075,7 @@ export default function HomePage() {
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       category,
-      people: form.people === "직접입력" ? form.peopleCustom || "직접입력" : form.people,
+      people: resolvePeople(form.people, form.peopleCustom),
       distilleryName: form.selectedDistillery?.name_ko || form.distilleryName,
       regionName: regionLabel || "",
       type: form.type || (category === "whisky" ? "싱글몰트" : category === "wine" ? "레드" : "녹차"),
@@ -1037,12 +1126,12 @@ export default function HomePage() {
   };
 
   const editNote = (note: Note) => {
+    const peopleValues = getPeopleFormValues(note.people);
     setCategory(note.category);
     setForm({
       ...getDefaultForm(note.category),
       ...note,
-      people: ["진욱", "지선", "함께"].includes(note.people) ? note.people : "직접입력",
-      peopleCustom: ["진욱", "지선", "함께"].includes(note.people) ? "" : note.people,
+      ...peopleValues,
       selectedDistillery: note.selectedDistillery || null,
     });
     setView("tasting");
@@ -1229,20 +1318,21 @@ export default function HomePage() {
                       </div>
 
                       <div className="grid gap-3 md:grid-cols-2">
-                        <label className="form-label-row">
+                        <div className="form-label-row">
                           <span>마신 사람</span>
                           <div className="min-w-0">
-                            <CustomSelect
-                              value={form.people === "직접입력" ? "직접입력" : form.people}
+                            <CustomMultiSelect
+                              label="마신 사람"
+                              values={parsePeople(form.people) as (typeof peopleOptions)[number][]}
                               options={peopleOptions}
-                              onChange={(value) => {
-                                updateField("people", value);
-                                if (value !== "직접입력") updateField("peopleCustom", "");
+                              onChange={(values) => {
+                                updateField("people", values.join(", "));
+                                if (!values.includes("직접입력")) updateField("peopleCustom", "");
                               }}
                             />
                           </div>
-                        </label>
-                        {form.people === "직접입력" && (
+                        </div>
+                        {parsePeople(form.people).includes("직접입력") && (
                           <label className="form-label-row">
                             <span>직접 입력</span>
                             <input value={form.peopleCustom} onChange={(e) => updateField("peopleCustom", e.target.value)} placeholder="이름 입력" className="form-label-input" />
@@ -1650,12 +1740,12 @@ export default function HomePage() {
       )}
 
       {selectedNote && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1a130f]/55 p-4 backdrop-blur-[2px]" onClick={() => {
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-[#1a130f]/55 p-2 backdrop-blur-[2px] [touch-action:pan-y] [-webkit-overflow-scrolling:touch] sm:items-center sm:p-4" onClick={() => {
           setSelectedNote(null);
           setArchiveEditMode(false);
           setArchiveDraft(null);
         }}>
-          <div className="max-h-[90vh] w-full max-w-5xl overflow-auto rounded-[30px] border border-[#ebddd0] bg-[#fffaf6] p-5 shadow-[0_26px_60px_rgba(72,52,42,0.16)]" onClick={(e) => e.stopPropagation()}>
+          <div className="my-2 w-full max-w-5xl overflow-visible rounded-[24px] border border-[#ebddd0] bg-[#fffaf6] p-3 shadow-[0_26px_60px_rgba(72,52,42,0.16)] sm:my-0 sm:max-h-[90dvh] sm:overflow-y-auto sm:rounded-[30px] sm:p-5 sm:overscroll-contain sm:[-webkit-overflow-scrolling:touch]" onClick={(e) => e.stopPropagation()}>
             {Object.values(detailPanels).some(Boolean) && (
               <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[#1a130f]/55 p-4 backdrop-blur-[2px]" onClick={closeDetailPanels}>
                 <div className="w-full max-w-xl overflow-hidden rounded-[28px] border border-[#ebddd0] bg-[#fffaf6] shadow-[0_26px_60px_rgba(72,52,42,0.16)]" onClick={(e) => e.stopPropagation()}>
