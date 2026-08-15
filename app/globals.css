@@ -30,7 +30,9 @@ html {
 }
 
 html, body {
+  max-width: 100%;
   overflow-x: hidden;
+  overscroll-behavior-x: none;
 }
 
 body {
@@ -83,6 +85,7 @@ select,
 textarea {
   font: inherit;
   font-size: 14px;
+  touch-action: manipulation;
 }
 
 input,
@@ -356,6 +359,12 @@ input[type="date"].form-label-input::-webkit-calendar-picker-indicator {
 }
 
 @media (max-width: 640px) {
+  input:not([type="file"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
   .form-label-row {
     grid-template-columns: 1fr;
     gap: 0.45rem;
@@ -375,7 +384,7 @@ input[type="date"].form-label-input::-webkit-calendar-picker-indicator {
     min-height: 40px;
     max-width: 100%;
     padding: 0.6rem 0.7rem;
-    font-size: 13px;
+    font-size: 16px;
   }
 
   .archive-row {
