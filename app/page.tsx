@@ -446,7 +446,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.14";
+const APP_VERSION = "1.15";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -949,6 +949,8 @@ export default function HomePage() {
   const [tagModal, setTagModal] = useState<{ field: TagField; value: string } | null>(null);
   const [customTags, setCustomTags] = useState<CustomTags>(createEmptyCustomTags);
   const [savingTags, setSavingTags] = useState(false);
+  const [initialLoadState, setInitialLoadState] = useState<"loading" | "ready" | "error">("loading");
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   const wineCountryOptions = useMemo(
     () => wineCountryGroups.find((group) => group.name === selectedCountryGroup)?.countries ?? ["프랑스"],
@@ -956,24 +958,34 @@ export default function HomePage() {
   );
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
-      const [notesResponse, tagsResponse] = await Promise.all([
-        fetch("/api/notes"),
-        fetch("/api/tags"),
-      ]);
+      try {
+        const [notesResponse, tagsResponse] = await Promise.all([
+          fetch("/api/notes"),
+          fetch("/api/tags"),
+        ]);
 
-      if (notesResponse.ok) {
-        const result = await notesResponse.json();
-        setNotes(Array.isArray(result) ? result : []);
-      }
+        if (!notesResponse.ok || !tagsResponse.ok) throw new Error("Initial data request failed");
 
-      if (tagsResponse.ok) {
-        const result = await tagsResponse.json();
-        setCustomTags(result as CustomTags);
+        const [notesResult, tagsResult] = await Promise.all([
+          notesResponse.json(),
+          tagsResponse.json(),
+        ]);
+        if (cancelled) return;
+
+        setNotes(Array.isArray(notesResult) ? notesResult : []);
+        setCustomTags(tagsResult as CustomTags);
+        setInitialLoadState("ready");
+      } catch {
+        if (!cancelled) setInitialLoadState("error");
       }
     };
-    load();
-  }, []);
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [loadAttempt]);
 
   useEffect(() => {
     if (!showToast) return;
@@ -1283,11 +1295,11 @@ export default function HomePage() {
             <div className="w-full max-w-xl text-center text-white">
               <div className="mb-6 flex items-center justify-center gap-2 text-[9px] tracking-[0.38em] text-white/75 sm:text-[10px]">
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block h-2.5 w-2.5 animate-[bounce_0.9s_ease-in-out_infinite] rounded-full bg-[#f8d7c6]" />
-                  <span className="inline-block h-2.5 w-2.5 animate-[bounce_0.9s_ease-in-out_0.15s_infinite] rounded-full bg-[#f5c7a9]" />
-                  <span className="inline-block h-2.5 w-2.5 animate-[bounce_0.9s_ease-in-out_0.3s_infinite] rounded-full bg-[#efb08a]" />
+                  <span className={`inline-block h-2.5 w-2.5 rounded-full bg-[#f8d7c6] ${initialLoadState === "loading" ? "animate-[bounce_0.9s_ease-in-out_infinite]" : ""}`} />
+                  <span className={`inline-block h-2.5 w-2.5 rounded-full bg-[#f5c7a9] ${initialLoadState === "loading" ? "animate-[bounce_0.9s_ease-in-out_0.15s_infinite]" : ""}`} />
+                  <span className={`inline-block h-2.5 w-2.5 rounded-full bg-[#efb08a] ${initialLoadState === "loading" ? "animate-[bounce_0.9s_ease-in-out_0.3s_infinite]" : ""}`} />
                 </span>
-                <span className="ml-1">LOADING</span>
+                <span className="ml-1">{initialLoadState === "loading" ? "LOADING" : initialLoadState === "ready" ? "READY" : "LOAD FAILED"}</span>
               </div>
 
               <h1 className="text-[2rem] font-semibold leading-[1.08] tracking-[-0.05em] text-white sm:text-[3rem] md:text-[4rem]">
@@ -1297,20 +1309,21 @@ export default function HomePage() {
               <div className="mt-8 flex items-center justify-center gap-2 sm:gap-3">
                 <div className="flex items-center gap-1.5 rounded-full border border-[#f8d9c8]/30 bg-[rgba(255,255,255,0.08)] px-2.5 py-1.5 text-[10px] font-medium text-white/80 backdrop-blur-sm shadow-[0_8px_18px_rgba(93,70,54,0.18)] sm:px-3.5 sm:text-xs">
                   <span className="text-base">🥃</span>
-                  <span>{stats.whisky}</span>
+                  <span>{initialLoadState === "ready" ? stats.whisky : "—"}</span>
                 </div>
                 <div className="flex items-center gap-1.5 rounded-full border border-[#f8d9c8]/30 bg-[rgba(255,255,255,0.08)] px-2.5 py-1.5 text-[10px] font-medium text-white/80 backdrop-blur-sm shadow-[0_8px_18px_rgba(93,70,54,0.18)] sm:px-3.5 sm:text-xs">
                   <span className="text-base">🍷</span>
-                  <span>{stats.wine}</span>
+                  <span>{initialLoadState === "ready" ? stats.wine : "—"}</span>
                 </div>
                 <div className="flex items-center gap-1.5 rounded-full border border-[#f8d9c8]/30 bg-[rgba(255,255,255,0.08)] px-2.5 py-1.5 text-[10px] font-medium text-white/80 backdrop-blur-sm shadow-[0_8px_18px_rgba(93,70,54,0.18)] sm:px-3.5 sm:text-xs">
                   <span className="text-base">🍵</span>
-                  <span>{stats.tea}</span>
+                  <span>{initialLoadState === "ready" ? stats.tea : "—"}</span>
                 </div>
               </div>
 
-              <div className="mt-8 flex justify-center">
-                <button type="button" onClick={() => setView("tasting")} className="rounded-full bg-[#f8d9c8] px-5 py-2.5 text-sm font-medium text-[#2d1d1a] shadow-[0_12px_26px_rgba(0,0,0,0.2)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#f7cdb5] sm:px-6">입장하기</button>
+              <div className="mt-8 flex min-h-[42px] justify-center">
+                {initialLoadState === "ready" && <button type="button" onClick={() => setView("tasting")} className="rounded-full bg-[#f8d9c8] px-5 py-2.5 text-sm font-medium text-[#2d1d1a] shadow-[0_12px_26px_rgba(0,0,0,0.2)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#f7cdb5] sm:px-6">입장하기</button>}
+                {initialLoadState === "error" && <button type="button" onClick={() => { setInitialLoadState("loading"); setLoadAttempt((attempt) => attempt + 1); }} className="rounded-full border border-white/35 bg-white/10 px-5 py-2.5 text-sm font-medium text-white shadow-[0_12px_26px_rgba(0,0,0,0.18)] backdrop-blur-sm transition-all hover:bg-white/15 sm:px-6">다시 불러오기</button>}
               </div>
             </div>
           </div>
