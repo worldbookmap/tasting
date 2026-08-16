@@ -20,6 +20,7 @@ import {
   faTableCellsLarge,
   faTrash,
   faUpload,
+  faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import distilleries from "@/assets/distillery.json";
 
@@ -446,7 +447,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.15";
+const APP_VERSION = "1.16";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -2227,6 +2228,12 @@ export default function HomePage() {
                     className="form-label-textarea min-h-[120px]"
                   />
                 </label>
+
+                <div className="flex items-center justify-end gap-2 border-t border-[#f0e3d8] pt-4">
+                  <button type="button" onClick={saveArchiveEdit} className="document-button document-button--primary">저장</button>
+                  <button type="button" onClick={cancelArchiveEdit} className="document-button document-button--ghost">취소</button>
+                  <button type="button" onClick={() => { cancelArchiveEdit(); setSelectedNote(null); }} className="document-button document-button--ghost">닫기</button>
+                </div>
               </div>
             ) : (
               <>
@@ -2236,6 +2243,15 @@ export default function HomePage() {
                       <div className="text-[9px] tracking-[0.24em] text-[#7e665d]">DETAIL</div>
                       <h3 className="mt-1 truncate text-[1.35rem] font-semibold leading-tight text-[#2b201d] sm:text-[1.7rem]">{selectedNote.name || "테이스팅 기록"}</h3>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedNote(null)}
+                      aria-label="세부정보 창 닫기"
+                      title="닫기"
+                      className="document-button document-button--ghost h-9 min-h-0 w-9 shrink-0 p-0 text-base"
+                    >
+                      <FontAwesomeIcon icon={faXmark} />
+                    </button>
                   </div>
                 </div>
                 <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
