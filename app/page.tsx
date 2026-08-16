@@ -307,6 +307,49 @@ function WhiskyPinMap({ distillery }: { distillery: Distillery | null }) {
   );
 }
 
+function WhiskyDistillerySelectionMap({
+  items,
+  selected,
+  onSelect,
+}: {
+  items: Distillery[];
+  selected: Distillery | null;
+  onSelect: (distillery: Distillery) => void;
+}) {
+  const focused = items.length <= 30 ? items[0] : selected;
+  const center: [number, number] = focused
+    ? [focused.latitude, focused.longitude]
+    : [56.5, -4.2];
+
+  return (
+    <div className="h-64 w-full overflow-hidden rounded-2xl border border-[#d5c2a5]">
+      <LeafletMap center={center} zoom={focused ? 7 : 5} scrollWheelZoom={false} className="h-full w-full" attributionControl={false}>
+        <LeafletTileLayer
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; OpenStreetMap contributors &copy; CARTO'
+        />
+        {items.map((item) => {
+          const isSelected = selected?.name === item.name;
+          return (
+            <LeafletCircleMarker
+              key={`${item.name}-${item.latitude}-${item.longitude}`}
+              center={[item.latitude, item.longitude]}
+              radius={isSelected ? 10 : 6}
+              eventHandlers={{ click: () => onSelect(item) }}
+              pathOptions={{
+                color: isSelected ? "#4e2d2d" : "#9b6d48",
+                weight: isSelected ? 3 : 1.5,
+                fillColor: isSelected ? "#d95f48" : "#e7b38d",
+                fillOpacity: isSelected ? 1 : 0.78,
+              }}
+            />
+          );
+        })}
+      </LeafletMap>
+    </div>
+  );
+}
+
 function RegionBlockMap({
   items,
   activeId,
@@ -401,7 +444,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.08";
+const APP_VERSION = "1.09";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -894,6 +937,7 @@ export default function HomePage() {
   const [toastMessage, setToastMessage] = useState("저장완료");
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [distilleryQuery, setDistilleryQuery] = useState("");
+  const [archiveDistilleryQuery, setArchiveDistilleryQuery] = useState("");
   const [selectedCountryGroup, setSelectedCountryGroup] = useState<(typeof wineCountryGroups)[number]["name"]>("프랑스");
   const [selectedCountry, setSelectedCountry] = useState("프랑스");
   const [archiveEditMode, setArchiveEditMode] = useState(false);
@@ -977,6 +1021,11 @@ export default function HomePage() {
     if (!distilleryQuery.trim()) return distilleries.slice(0, 14) as Distillery[];
     return distilleries.filter((item) => `${item.name} ${item.name_ko}`.toLowerCase().includes(distilleryQuery.toLowerCase())) as Distillery[];
   }, [distilleryQuery]);
+
+  const archiveDistilleries = useMemo(() => {
+    if (!archiveDistilleryQuery.trim()) return distilleries as Distillery[];
+    return distilleries.filter((item) => `${item.name} ${item.name_ko}`.toLowerCase().includes(archiveDistilleryQuery.toLowerCase())) as Distillery[];
+  }, [archiveDistilleryQuery]);
 
   const updateField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -1141,6 +1190,7 @@ export default function HomePage() {
 
   const startArchiveEdit = (note: Note) => {
     setArchiveDraft({ ...note });
+    setArchiveDistilleryQuery("");
     setArchiveEditMode(true);
   };
 
@@ -1173,6 +1223,7 @@ export default function HomePage() {
   const cancelArchiveEdit = () => {
     setArchiveEditMode(false);
     setArchiveDraft(null);
+    setArchiveDistilleryQuery("");
   };
 
   const isWhisky = category === "whisky";
@@ -1960,9 +2011,49 @@ export default function HomePage() {
                       {archiveDraft.category === "whisky" ? (
                         <>
                           <div className="document-section-label">증류소 수정</div>
+                          <div className="mb-3 flex min-w-0 items-center justify-between gap-2 text-[11px] text-[#69564d]">
+                            <span>지도 핀 또는 목록에서 선택</span>
+                            <strong className="min-w-0 truncate text-right text-[#392d27]">{archiveDraft.selectedDistillery?.name_ko || archiveDraft.distilleryName || "미선택"}</strong>
+                          </div>
+                          <input
+                            value={archiveDistilleryQuery}
+                            onChange={(e) => setArchiveDistilleryQuery(e.target.value)}
+                            placeholder="증류소 검색"
+                            className="mb-3 min-w-0 w-full max-w-full rounded-2xl border border-[#f0d8c7] bg-white px-3 py-2 text-sm text-[#2d201d] outline-none transition hover:border-[#d8b59a] focus:border-[#c98d5e] focus:shadow-[0_0_0_4px_rgba(201,141,94,0.12)]"
+                          />
+                          <WhiskyDistillerySelectionMap
+                            items={archiveDistilleries}
+                            selected={archiveDraft.selectedDistillery}
+                            onSelect={(item) => setArchiveDraft((prev) => prev ? {
+                              ...prev,
+                              selectedDistillery: item,
+                              distilleryName: item.name_ko,
+                              regionName: item.name_ko,
+                            } : prev)}
+                          />
+                          <div className="custom-select-scroll mt-3 max-h-44 space-y-1 overflow-y-auto rounded-2xl border border-[#ead9ca] bg-white/55 p-1.5">
+                            {archiveDistilleries.slice(0, 30).map((item) => (
+                              <button
+                                type="button"
+                                key={`${item.name}-${item.name_ko}`}
+                                onClick={() => setArchiveDraft((prev) => prev ? {
+                                  ...prev,
+                                  selectedDistillery: item,
+                                  distilleryName: item.name_ko,
+                                  regionName: item.name_ko,
+                                } : prev)}
+                                className={`flex w-full min-w-0 items-center justify-between gap-2 rounded-xl border px-2.5 py-2 text-left ${archiveDraft.selectedDistillery?.name === item.name ? "border-[#9a7658] bg-[#f7efe7]" : "border-transparent bg-white/60"}`}
+                              >
+                                <span className="min-w-0 truncate text-[11px] font-medium text-[#3f302a]">{item.name_ko}</span>
+                                <span className="min-w-0 truncate text-right text-[9px] text-[#7b6258]">{item.name}</span>
+                              </button>
+                            ))}
+                            {!archiveDistilleries.length && <div className="px-3 py-4 text-center text-xs text-[#7b6258]">검색 결과가 없습니다.</div>}
+                          </div>
+                          <div className="my-3 text-center text-[9px] tracking-[0.14em] text-[#8a746a]">직접 입력</div>
                           <input
                             value={archiveDraft.distilleryName || archiveDraft.regionName || ""}
-                            onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, distilleryName: e.target.value, regionName: e.target.value } : prev)}
+                            onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, selectedDistillery: null, distilleryName: e.target.value, regionName: e.target.value } : prev)}
                             placeholder="증류소명"
                             className="min-w-0 w-full max-w-full rounded-2xl border border-[#f0d8c7] bg-white px-3 py-2 text-sm text-[#2d201d] outline-none transition hover:border-[#d8b59a] focus:border-[#c98d5e] focus:shadow-[0_0_0_4px_rgba(201,141,94,0.12)]"
                           />
