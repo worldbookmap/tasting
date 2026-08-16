@@ -401,7 +401,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.07";
+const APP_VERSION = "1.08";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -1858,12 +1858,12 @@ export default function HomePage() {
                   </label>
                 </div>
 
-                <div className="document-section-group">
-                  <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-                    <div className="document-section-surface p-4">
+                <div className="document-section-group min-w-0 max-w-full overflow-hidden">
+                  <div className="grid min-w-0 max-w-full gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+                    <div className="document-section-surface min-w-0 max-w-full overflow-hidden p-3 sm:p-4">
                       <div className="document-section-label">이미지</div>
-                      <div className="grid gap-4 md:grid-cols-2">
-                      <div className="rounded-[18px] bg-[#fffdfb] p-3">
+                      <div className="grid min-w-0 max-w-full gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                      <div className="min-w-0 max-w-full overflow-hidden rounded-[18px] bg-[#fffdfb] p-3">
                         <div className="mb-2 text-[11px] font-medium text-[#5e4740]">메인 사진</div>
                         {archiveDraft.photo || archiveDraft.photoUrl ? (
                           <div className="relative h-32 overflow-hidden rounded-[14px] bg-[#f7efe8]">
@@ -1872,7 +1872,7 @@ export default function HomePage() {
                         ) : (
                           <div className="flex h-32 items-center justify-center rounded-[14px] border border-dashed border-[#d9c4b2] bg-[#faf3ee] text-xs text-[#8b736b]">사진 없음</div>
                         )}
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <div className="mt-3 flex min-w-0 max-w-full flex-wrap items-center gap-2">
                           <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#eee2d6] px-3 py-1.5 text-[10px] font-medium text-[#41332d]">
                             <FontAwesomeIcon icon={faCamera} className="text-[10px]" />
                             카메라
@@ -1887,13 +1887,13 @@ export default function HomePage() {
                             value={archiveDraft.photoUrl}
                             onChange={(e) => applyArchiveMediaUrl(e.target.value, "photo", "photoUrl")}
                             placeholder="사진 URL"
-                            className="min-w-0 flex-1 rounded-full border border-[#e9d4c2] bg-white px-2.5 py-1.5 text-[10px] text-[#2d201d] outline-none placeholder:text-[#9a8a82]"
+                            className="min-w-0 basis-full rounded-full border border-[#e9d4c2] bg-white px-2.5 py-1.5 text-[10px] text-[#2d201d] outline-none placeholder:text-[#9a8a82] sm:basis-0 sm:flex-1"
                           />
                         </div>
                       </div>
 
                       {(archiveDraft.category === "whisky" || archiveDraft.category === "wine") && (
-                        <div className="rounded-[18px] bg-[#fffdfb] p-3">
+                        <div className="min-w-0 max-w-full overflow-hidden rounded-[18px] bg-[#fffdfb] p-3">
                           <div className="mb-2 text-[11px] font-medium text-[#5e4740]">라벨</div>
                           {archiveDraft.labelPhoto || archiveDraft.labelPhotoUrl ? (
                             <div className="relative h-32 overflow-hidden rounded-[14px] bg-[#f7efe8]">
@@ -1902,7 +1902,7 @@ export default function HomePage() {
                           ) : (
                             <div className="flex h-32 items-center justify-center rounded-[14px] border border-dashed border-[#d9c4b2] bg-[#faf3ee] text-xs text-[#8b736b]">라벨 없음</div>
                           )}
-                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <div className="mt-3 flex min-w-0 max-w-full flex-wrap items-center gap-2">
                             <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#eee2d6] px-3 py-1.5 text-[10px] font-medium text-[#41332d]">
                               <FontAwesomeIcon icon={faCamera} className="text-[10px]" />
                               카메라
@@ -1917,14 +1917,14 @@ export default function HomePage() {
                               value={archiveDraft.labelPhotoUrl}
                               onChange={(e) => applyArchiveMediaUrl(e.target.value, "labelPhoto", "labelPhotoUrl")}
                               placeholder="라벨 URL"
-                              className="min-w-0 flex-1 rounded-full border border-[#e9d4c2] bg-white px-2.5 py-1.5 text-[10px] text-[#2d201d] outline-none placeholder:text-[#9a8a82]"
+                              className="min-w-0 basis-full rounded-full border border-[#e9d4c2] bg-white px-2.5 py-1.5 text-[10px] text-[#2d201d] outline-none placeholder:text-[#9a8a82] sm:basis-0 sm:flex-1"
                             />
                           </div>
                         </div>
                       )}
 
                       {archiveDraft.category === "tea" && (
-                        <div className="rounded-[18px] bg-[#fffdfb] p-3 md:col-span-2">
+                        <div className="min-w-0 max-w-full overflow-hidden rounded-[18px] bg-[#fffdfb] p-3 md:col-span-2">
                           <div className="mb-2 text-[11px] font-medium text-[#5e4740]">차엽</div>
                           {archiveDraft.teaLeafPhoto || archiveDraft.teaLeafUrl ? (
                             <div className="relative h-32 overflow-hidden rounded-[14px] bg-[#f7efe8]">
@@ -1933,7 +1933,7 @@ export default function HomePage() {
                           ) : (
                             <div className="flex h-32 items-center justify-center rounded-[14px] border border-dashed border-[#d9c4b2] bg-[#faf3ee] text-xs text-[#8b736b]">차엽 없음</div>
                           )}
-                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <div className="mt-3 flex min-w-0 max-w-full flex-wrap items-center gap-2">
                             <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#eee2d6] px-3 py-1.5 text-[10px] font-medium text-[#41332d]">
                               <FontAwesomeIcon icon={faCamera} className="text-[10px]" />
                               카메라
@@ -1948,7 +1948,7 @@ export default function HomePage() {
                               value={archiveDraft.teaLeafUrl}
                               onChange={(e) => applyArchiveMediaUrl(e.target.value, "teaLeafPhoto", "teaLeafUrl")}
                               placeholder="차엽 URL"
-                              className="min-w-0 flex-1 rounded-full border border-[#e9d4c2] bg-white px-2.5 py-1.5 text-[10px] text-[#2d201d] outline-none placeholder:text-[#9a8a82]"
+                              className="min-w-0 basis-full rounded-full border border-[#e9d4c2] bg-white px-2.5 py-1.5 text-[10px] text-[#2d201d] outline-none placeholder:text-[#9a8a82] sm:basis-0 sm:flex-1"
                             />
                           </div>
                         </div>
@@ -1956,7 +1956,7 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                    <div className="document-section-surface p-4">
+                    <div className="document-section-surface min-w-0 max-w-full overflow-hidden p-3 sm:p-4">
                       {archiveDraft.category === "whisky" ? (
                         <>
                           <div className="document-section-label">증류소 수정</div>
@@ -1964,7 +1964,7 @@ export default function HomePage() {
                             value={archiveDraft.distilleryName || archiveDraft.regionName || ""}
                             onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, distilleryName: e.target.value, regionName: e.target.value } : prev)}
                             placeholder="증류소명"
-                            className="w-full rounded-2xl border border-[#f0d8c7] bg-white px-3 py-2 text-sm text-[#2d201d] outline-none transition hover:border-[#d8b59a] focus:border-[#c98d5e] focus:shadow-[0_0_0_4px_rgba(201,141,94,0.12)]"
+                            className="min-w-0 w-full max-w-full rounded-2xl border border-[#f0d8c7] bg-white px-3 py-2 text-sm text-[#2d201d] outline-none transition hover:border-[#d8b59a] focus:border-[#c98d5e] focus:shadow-[0_0_0_4px_rgba(201,141,94,0.12)]"
                           />
                         </>
                       ) : (
@@ -2001,7 +2001,7 @@ export default function HomePage() {
                             value={archiveDraft.regionName}
                             onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, regionName: e.target.value } : prev)}
                             placeholder="산지 이름"
-                            className="w-full rounded-2xl border border-[#f0d8c7] bg-white px-3 py-2 text-sm text-[#2d201d] outline-none transition hover:border-[#d8b59a] focus:border-[#c98d5e] focus:shadow-[0_0_0_4px_rgba(201,141,94,0.12)]"
+                            className="min-w-0 w-full max-w-full rounded-2xl border border-[#f0d8c7] bg-white px-3 py-2 text-sm text-[#2d201d] outline-none transition hover:border-[#d8b59a] focus:border-[#c98d5e] focus:shadow-[0_0_0_4px_rgba(201,141,94,0.12)]"
                           />
                         </>
                       )}
