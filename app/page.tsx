@@ -11,6 +11,8 @@ import {
   faCalendarAlt,
   faCamera,
   faCheck,
+  faChevronLeft,
+  faChevronRight,
   faGlassCheers,
   faList,
   faPen,
@@ -444,7 +446,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.09";
+const APP_VERSION = "1.12";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -1670,25 +1672,53 @@ export default function HomePage() {
 
                 {view === "calendar" && (
                   <section className="rounded-[24px] border border-white/20 bg-white/20 p-2.5 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm sm:p-3 md:p-6">
-                    <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:gap-4 md:flex-row md:items-center md:justify-between">
-                      <div className="hidden md:block" aria-hidden="true" />
-                      <div className="flex gap-2">
-                        <button type="button" onClick={() => { const next = new Date(selectedYear, selectedMonth - 1, 1); setSelectedYear(next.getFullYear()); setSelectedMonth(next.getMonth()); }} className="rounded-full bg-white/70 px-3 py-2 text-sm">이전</button>
-                        <div className="rounded-full bg-white/70 px-4 py-2 text-sm font-medium">{selectedYear}.{selectedMonth + 1}</div>
-                        <button type="button" onClick={() => { const next = new Date(selectedYear, selectedMonth + 1, 1); setSelectedYear(next.getFullYear()); setSelectedMonth(next.getMonth()); }} className="rounded-full bg-white/70 px-3 py-2 text-sm">다음</button>
+                    <div className="mb-3 overflow-hidden rounded-[18px] border border-[#e5d6ca] bg-[linear-gradient(135deg,rgba(255,252,249,0.9),rgba(244,232,224,0.78))] shadow-[0_12px_28px_rgba(73,53,43,0.07),inset_0_1px_0_rgba(255,255,255,0.8)] sm:mb-4 sm:rounded-[22px]">
+                      <div className="flex items-center justify-between gap-3 px-3 py-2.5 sm:px-4 sm:py-3">
+                        <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+                          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#dbc5b5] bg-[#2d211d] text-[#f8eee7] shadow-[0_5px_12px_rgba(45,33,29,0.18)] sm:h-10 sm:w-10">
+                            <FontAwesomeIcon icon={faCalendarAlt} className="text-[13px] sm:text-sm" />
+                          </span>
+                          <div className="min-w-0">
+                            <div className="text-[8px] font-medium uppercase tracking-[0.22em] text-[#806b61] sm:text-[9px]">Tasting Calendar</div>
+                            <div className="mt-0.5 flex items-baseline gap-2">
+                              <h2 className="truncate text-[18px] font-semibold leading-none text-[#2d211d] sm:text-[22px]">{selectedYear}년 {selectedMonth + 1}월</h2>
+                              <span className="shrink-0 text-[9px] text-[#806d64] sm:text-[10px]">기록 {monthNotes.length}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1 rounded-full border border-[#ddcbbd] bg-white/60 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
+                          <button type="button" title="이전 달" aria-label="이전 달" onClick={() => { const next = new Date(selectedYear, selectedMonth - 1, 1); setSelectedYear(next.getFullYear()); setSelectedMonth(next.getMonth()); }} className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#493730] transition-colors hover:bg-[#eee1d8]">
+                            <FontAwesomeIcon icon={faChevronLeft} className="text-[11px]" />
+                          </button>
+                          <span className="h-4 w-px bg-[#ddcbbd]" aria-hidden="true" />
+                          <button type="button" title="다음 달" aria-label="다음 달" onClick={() => { const next = new Date(selectedYear, selectedMonth + 1, 1); setSelectedYear(next.getFullYear()); setSelectedMonth(next.getMonth()); }} className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#493730] transition-colors hover:bg-[#eee1d8]">
+                            <FontAwesomeIcon icon={faChevronRight} className="text-[11px]" />
+                          </button>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-                      <div className="rounded-[28px] border border-[#e9dfd3] bg-white/70 p-3 sm:p-4">
-                        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-medium text-[#685950] sm:text-xs">
-                          {['일', '월', '화', '수', '목', '금', '토'].map((day) => <div key={day} className="py-1.5">{day}</div>)}
+                    <div className="grid gap-2 lg:grid-cols-[1.2fr_0.8fr] lg:gap-4">
+                      <div className="overflow-hidden rounded-[18px] border border-[#e9dfd3] bg-white/70 p-0.5 sm:rounded-[22px] sm:p-1">
+                        <div className="grid grid-cols-7 gap-0.5 text-center text-[9px] font-medium leading-none text-[#685950] sm:text-[11px]">
+                          {['일', '월', '화', '수', '목', '금', '토'].map((day) => <div key={day} className="py-1">{day}</div>)}
                         </div>
-                        <div className="mt-2 grid grid-cols-7 gap-1.5">
+                        <div className="grid grid-cols-7 gap-0.5">
                           {calendarDays.map((day, index) => {
                             const dateString = day ? `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}` : "";
                             const dayNotes = day ? notes.filter((note) => note.date === dateString) : [];
                             const uniqueCategories = Array.from(new Set(dayNotes.map((note) => note.category)));
+                            const iconCount = uniqueCategories.length;
+                            const iconGroupClass = iconCount <= 1
+                              ? ""
+                              : iconCount === 2
+                                ? "-space-x-[17px] min-[400px]:-space-x-2 sm:-space-x-1"
+                                : "-space-x-[14px] min-[400px]:-space-x-[16px] sm:-space-x-[14px]";
+                            const iconSizeClass = iconCount <= 1
+                              ? "h-8 w-8 text-[15px] min-[400px]:h-9 min-[400px]:w-9 min-[400px]:text-[17px] sm:h-10 sm:w-10 sm:text-[19px]"
+                              : iconCount === 2
+                                ? "h-[26px] w-[26px] text-[12px] min-[400px]:h-[34px] min-[400px]:w-[34px] min-[400px]:text-[16px] sm:h-9 sm:w-9 sm:text-[17px]"
+                                : "h-[21px] w-[21px] text-[10px] min-[400px]:h-[30px] min-[400px]:w-[30px] min-[400px]:text-[14px] sm:h-8 sm:w-8 sm:text-[15px]";
 
                             return (
                               <button
@@ -1699,21 +1729,23 @@ export default function HomePage() {
                                   setCalendarSelectedDate(dateString);
                                   setCalendarDetailDate(dateString);
                                 }}
-                                className={`relative min-h-[88px] rounded-[16px] border p-1.5 text-left transition-all sm:min-h-[96px] ${day ? (calendarSelectedDate === dateString ? "border-[#d29774] bg-[#fff6f1] shadow-[0_6px_12px_rgba(116,87,69,0.08)]" : "border-[#e9dccd] bg-[#fffaf7]") : "border-transparent bg-transparent"}`}
+                                className={`relative min-h-[82px] overflow-hidden rounded-[7px] border p-0 text-left transition-all sm:min-h-[96px] sm:rounded-[10px] ${day ? (calendarSelectedDate === dateString ? "border-[#d29774] bg-[#fff6f1] shadow-[0_3px_8px_rgba(116,87,69,0.08)]" : "border-[#e9dccd] bg-[#fffaf7]") : "border-transparent bg-transparent"}`}
                               >
                                 {day && (
-                                  <div className="flex h-full flex-col items-center justify-center">
-                                    <span className="text-[11px] font-semibold text-[#392d28]">{day}</span>
-                                    <div className="mt-1 flex min-h-[22px] items-center justify-center gap-1.5">
-                                      {uniqueCategories.length > 0 ? uniqueCategories.map((category) => (
-                                        <span
-                                          key={`${dateString}-${category}`}
-                                          title={categoryLabels[category]}
-                                          className={`inline-flex h-5 w-5 items-center justify-center rounded-full border border-transparent text-[9px] ${category === "whisky" ? "bg-[#e8d8bd] text-[#4b3b2f]" : category === "wine" ? "bg-[#f0dfe0] text-[#4d3535]" : "bg-[#dfead5] text-[#2f4631]"}`}
-                                        >
-                                          {category === "whisky" ? "🥃" : category === "wine" ? "🍷" : "🍵"}
-                                        </span>
-                                      )) : <span className="h-5 w-5" aria-hidden="true" />}
+                                  <div className="flex h-full min-w-0 flex-col items-stretch justify-start">
+                                    <span className="block h-[18px] shrink-0 text-center text-[10px] font-semibold leading-[18px] text-[#392d28] sm:h-5 sm:text-[11px] sm:leading-5">{day}</span>
+                                    <div className="flex min-w-0 flex-1 items-start justify-center pt-1 sm:pt-1.5">
+                                      <div className={`flex ${iconGroupClass}`}>
+                                        {uniqueCategories.map((category) => (
+                                          <span
+                                            key={`${dateString}-${category}`}
+                                            title={categoryLabels[category]}
+                                            className={`inline-flex shrink-0 items-center justify-center rounded-full border border-white/90 shadow-[0_2px_5px_rgba(65,46,37,0.14)] ${iconSizeClass} ${category === "whisky" ? "bg-[#e8d8bd] text-[#4b3b2f]" : category === "wine" ? "bg-[#f0dfe0] text-[#4d3535]" : "bg-[#dfead5] text-[#2f4631]"}`}
+                                          >
+                                            {category === "whisky" ? "🥃" : category === "wine" ? "🍷" : "🍵"}
+                                          </span>
+                                        ))}
+                                      </div>
                                     </div>
                                   </div>
                                 )}
