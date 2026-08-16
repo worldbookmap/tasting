@@ -446,7 +446,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.12";
+const APP_VERSION = "1.14";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -505,7 +505,7 @@ const wineTags = ["꽃향", "과일향", "초콜릿", "허브", "토스트", "�
 const teaTags = ["꽃향", "시원함", "풀잎", "대추", "볶음향", "과실향", "신선함", "단맛", "구수함", "깊은 향", "부드러움", "정원"];
 const whiskyKinds = ["싱글몰트", "블렌디드", "블렌디드몰트", "싱글그레인", "기타"];
 const wineKinds = ["스파클링", "화이트", "레드", "로제", "디저트", "기타"];
-const teaKinds = ["녹차", "백차", "황차", "청차", "흑차"];
+const teaKinds = ["녹차", "백차", "황차", "청차", "흑차", "홍차"];
 const peopleOptions = ["진욱", "지선", "직접입력"] as const;
 
 const parsePeople = (value: string) => value.split(",").map((person) => person.trim()).filter(Boolean);
@@ -1324,13 +1324,14 @@ export default function HomePage() {
         <div className="min-h-screen px-1 py-2.5 sm:px-1.5 md:px-6 md:py-5">
           <div className="mx-auto max-w-[1280px] overflow-hidden rounded-[28px] border border-white/30 shadow-[0_30px_60px_rgba(46,31,25,0.16)]" style={{ background: "transparent", border: "none", boxShadow: "none" }}>
             <div className="p-1.5 sm:p-2 md:p-5">
-              <header className="rounded-[22px] border border-white/25 px-2 py-2 text-[#281d18] shadow-[0_18px_36px_rgba(68,50,42,0.08),inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-xl sm:px-2.5 md:px-5" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.24), rgba(245,236,230,0.16))" }}>
+              <header className="relative overflow-hidden rounded-[22px] border border-[#d8bd91]/45 bg-[linear-gradient(135deg,rgba(35,27,27,0.96)_0%,rgba(77,42,48,0.94)_52%,rgba(36,57,49,0.95)_100%)] px-2.5 py-2.5 text-[#fff9f2] shadow-[0_18px_38px_rgba(35,23,24,0.2),inset_0_1px_0_rgba(255,244,224,0.16)] backdrop-blur-xl sm:px-3 sm:py-3 md:px-5 md:py-3.5">
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(245,215,168,0.72),transparent)]" aria-hidden="true" />
                 <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between md:gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e5d5c8] bg-[linear-gradient(180deg,#f9f3ef,#e9d7c8)] text-[#4d382e] shadow-[0_6px_14px_rgba(101,77,64,0.12)]"><FontAwesomeIcon icon={faGlassCheers} className="text-sm" /></div>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#dfc18e]/55 bg-[linear-gradient(180deg,rgba(245,218,174,0.18),rgba(245,218,174,0.06))] text-[#f1d39e] shadow-[0_7px_18px_rgba(16,10,11,0.28),inset_0_1px_0_rgba(255,247,232,0.16)]"><FontAwesomeIcon icon={faGlassCheers} className="text-sm" /></div>
                     <div className="min-w-0">
-                      <div className="text-[10px] tracking-[0.34em] text-[#715d55]">TASTING NOTE</div>
-                      <div className="brand-script mt-1 text-[2.1rem] leading-[0.9] tracking-[0.04em] text-[#2d201d] md:text-[2.5rem]">A Slow, Lovely Pour</div>
+                      <div className="text-[9px] font-medium tracking-[0.34em] text-[#e0c08c] sm:text-[10px]">TASTING NOTE</div>
+                      <div className="brand-script mt-1 text-[2.1rem] leading-[0.9] tracking-[0.04em] text-[#fff8ef] [text-shadow:0_2px_12px_rgba(0,0,0,0.24)] md:text-[2.5rem]">A Slow, Lovely Pour</div>
                     </div>
                   </div>
                   <nav className="flex w-full flex-nowrap items-center justify-start gap-1 overflow-x-auto scrollbar-none md:w-auto md:justify-end md:gap-1.5">
@@ -1339,7 +1340,7 @@ export default function HomePage() {
                       { key: "archive", label: "Archive", icon: faSearch },
                       { key: "calendar", label: "Calendar", icon: faCalendarAlt },
                     ].map((item) => (
-                      <button key={item.key} type="button" onClick={() => setView(item.key as "tasting" | "archive" | "calendar")} className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.25 py-1.75 text-[9.5px] font-medium transition-all duration-200 sm:px-3 sm:text-[10.5px] md:px-4 md:text-sm ${view === item.key ? "border-[#3b2a25] bg-[#2a201d] text-[#f4efe9] shadow-[0_8px_18px_rgba(42,32,29,0.2)]" : "border-[#e6d8cb] bg-white/45 text-[#2a201d] hover:bg-white/60"}`}>
+                      <button key={item.key} type="button" onClick={() => setView(item.key as "tasting" | "archive" | "calendar")} className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.25 py-1.75 text-[9.5px] font-medium transition-all duration-200 sm:px-3 sm:text-[10.5px] md:px-4 md:text-sm ${view === item.key ? "border-[#f0d6a8]/80 bg-[#f6e7cc] text-[#342723] shadow-[0_7px_16px_rgba(13,8,9,0.3)]" : "border-white/15 bg-white/[0.06] text-[#f7eee7]/85 hover:border-[#d9bd8d]/45 hover:bg-white/[0.11] hover:text-white"}`}>
                         <FontAwesomeIcon icon={item.icon} className="shrink-0 text-[9px] md:text-[12px]" />
                         <span className="truncate">{item.label}</span>
                       </button>
@@ -1921,14 +1922,27 @@ export default function HomePage() {
                         className="form-label-input"
                       />
                     </label>
-                    <label className="form-label-row">
-                      <span>종류</span>
-                      <input
-                        value={archiveDraft.type}
-                        onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, type: e.target.value } : prev)}
-                        className="form-label-input"
-                      />
-                    </label>
+                    {archiveDraft.category === "tea" ? (
+                      <div className="form-label-row">
+                        <span>종류</span>
+                        <div className="min-w-0">
+                          <CustomSelect
+                            value={archiveDraft.type}
+                            options={teaKinds}
+                            onChange={(value) => setArchiveDraft((prev) => prev ? { ...prev, type: value } : prev)}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="form-label-row">
+                        <span>종류</span>
+                        <input
+                          value={archiveDraft.type}
+                          onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, type: e.target.value } : prev)}
+                          className="form-label-input"
+                        />
+                      </label>
+                    )}
                   </div>
 
                     <label className="form-label-row">
