@@ -450,7 +450,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.28";
+const APP_VERSION = "1.29";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -1373,7 +1373,12 @@ export default function HomePage() {
 
               <div className="mt-8 flex min-h-[42px] justify-center">
                 {initialLoadState === "ready" && <button type="button" onClick={() => setView("tasting")} className="rounded-full bg-[#f8d9c8] px-5 py-2.5 text-sm font-medium text-[#2d1d1a] shadow-[0_12px_26px_rgba(0,0,0,0.2)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#f7cdb5] sm:px-6">입장하기</button>}
-                  {initialLoadState === "error" && <button type="button" onClick={refreshGitHubData} className="rounded-full border border-white/35 bg-white/10 px-5 py-2.5 text-sm font-medium text-white shadow-[0_12px_26px_rgba(0,0,0,0.18)] backdrop-blur-sm transition-all hover:bg-white/15 sm:px-6">다시 불러오기</button>}
+                {initialLoadState === "error" && (
+                  <div className="flex flex-col items-center gap-2">
+                    <button type="button" onClick={refreshGitHubData} className="rounded-full border border-white/35 bg-white/10 px-5 py-2.5 text-sm font-medium text-white shadow-[0_12px_26px_rgba(0,0,0,0.18)] backdrop-blur-sm transition-all hover:bg-white/15 sm:px-6">다시 불러오기</button>
+                    <button type="button" onClick={startNewNote} className="rounded-full border border-white/25 bg-transparent px-5 py-2 text-xs font-medium text-white/75 transition-all hover:border-white/45 hover:bg-white/10 hover:text-white sm:px-6">그냥 입장</button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
