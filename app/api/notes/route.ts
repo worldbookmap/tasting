@@ -17,9 +17,12 @@ type NotesSnapshot = {
 
 const githubApi = `https://api.github.com/repos/${repo}/contents/${githubPath}`;
 const githubHeaders = {
-  Authorization: `Bearer ${token}`,
   Accept: "application/vnd.github+json",
   "X-GitHub-Api-Version": "2022-11-28",
+};
+const githubWriteHeaders = {
+  ...githubHeaders,
+  Authorization: `Bearer ${token}`,
 };
 
 async function readGitHubNotes(): Promise<NotesSnapshot> {
@@ -53,7 +56,7 @@ async function writeGitHubNotes(nextNotes: NoteRecord[], sha?: string) {
   const response = await fetch(githubApi, {
     method: "PUT",
     headers: {
-      ...githubHeaders,
+      ...githubWriteHeaders,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -74,10 +77,7 @@ async function writeGitHubNotes(nextNotes: NoteRecord[], sha?: string) {
   }
 }
 
-const readNotes = () => {
-  if (!token) throw new Error("GitHub 저장을 위해 GITHUB_TOKEN 환경 변수가 필요합니다.");
-  return readGitHubNotes();
-};
+const readNotes = () => readGitHubNotes();
 
 async function writeNotes(nextNotes: NoteRecord[], sha?: string) {
   if (!token) throw new Error("GitHub 저장을 위해 GITHUB_TOKEN 환경 변수가 필요합니다.");
