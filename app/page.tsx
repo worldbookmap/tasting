@@ -15,6 +15,7 @@ import {
   faChevronLeft,
   faChevronRight,
   faGlassCheers,
+  faHouse,
   faList,
   faPen,
   faSearch,
@@ -449,7 +450,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.23";
+const APP_VERSION = "1.24";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -956,6 +957,32 @@ export default function HomePage() {
   const [initialLoadState, setInitialLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [loadAttempt, setLoadAttempt] = useState(0);
 
+  const refreshGitHubData = () => {
+    setInitialLoadState("loading");
+    setLoadAttempt((attempt) => attempt + 1);
+  };
+
+  const goHome = () => {
+    setView("landing");
+    setSelectedNote(null);
+    setArchiveEditMode(false);
+    setArchiveDraft(null);
+    setCalendarDetailDate(null);
+    setDeleteConfirm(null);
+    setTagModal(null);
+  };
+
+  const startNewNote = () => {
+    setView("tasting");
+    setForm(getDefaultForm(category));
+    setSelectedNote(null);
+    setArchiveEditMode(false);
+    setArchiveDraft(null);
+    setCalendarDetailDate(null);
+    setDeleteConfirm(null);
+    setTagModal(null);
+  };
+
   const wineCountryOptions = useMemo(
     () => wineCountryGroups.find((group) => group.name === selectedCountryGroup)?.countries ?? ["프랑스"],
     [selectedCountryGroup],
@@ -966,8 +993,8 @@ export default function HomePage() {
     const load = async () => {
       try {
         const [notesResponse, tagsResponse] = await Promise.all([
-          fetch("/api/notes"),
-          fetch("/api/tags"),
+          fetch("/api/notes", { cache: "no-store" }),
+          fetch("/api/tags", { cache: "no-store" }),
         ]);
 
         if (!notesResponse.ok || !tagsResponse.ok) throw new Error("Initial data request failed");
@@ -1346,7 +1373,7 @@ export default function HomePage() {
 
               <div className="mt-8 flex min-h-[42px] justify-center">
                 {initialLoadState === "ready" && <button type="button" onClick={() => setView("tasting")} className="rounded-full bg-[#f8d9c8] px-5 py-2.5 text-sm font-medium text-[#2d1d1a] shadow-[0_12px_26px_rgba(0,0,0,0.2)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#f7cdb5] sm:px-6">입장하기</button>}
-                {initialLoadState === "error" && <button type="button" onClick={() => { setInitialLoadState("loading"); setLoadAttempt((attempt) => attempt + 1); }} className="rounded-full border border-white/35 bg-white/10 px-5 py-2.5 text-sm font-medium text-white shadow-[0_12px_26px_rgba(0,0,0,0.18)] backdrop-blur-sm transition-all hover:bg-white/15 sm:px-6">다시 불러오기</button>}
+                  {initialLoadState === "error" && <button type="button" onClick={refreshGitHubData} className="rounded-full border border-white/35 bg-white/10 px-5 py-2.5 text-sm font-medium text-white shadow-[0_12px_26px_rgba(0,0,0,0.18)] backdrop-blur-sm transition-all hover:bg-white/15 sm:px-6">다시 불러오기</button>}
               </div>
             </div>
           </div>
@@ -2451,18 +2478,35 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className="fixed inset-x-0 bottom-0 z-[55] flex justify-center border-t border-[#e5d3c6]/90 bg-[#fffaf6]/90 px-4 pb-[max(0.55rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgba(72,52,42,0.1)] backdrop-blur-md md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-[55] flex justify-center gap-8 bg-transparent px-4 pb-[max(0.55rem,env(safe-area-inset-bottom))] pt-2 md:hidden" aria-label="빠른 메뉴">
         <button
           type="button"
-          onClick={() => globalThis.location.reload()}
-          aria-label="페이지 새로고침"
-          title="새로고침"
-          className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#d8b49e] bg-[#2d211d] px-5 py-2 text-xs font-medium text-[#fff8f2] shadow-[0_6px_16px_rgba(45,33,29,0.18)] transition hover:bg-[#44312a] active:scale-95"
+          onClick={goHome}
+          aria-label="홈"
+          title="홈"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-transparent text-[#3c2b25] transition hover:text-[#9b6048] active:scale-90"
         >
-          <FontAwesomeIcon icon={faArrowsRotate} />
-          <span>새로고침</span>
+          <FontAwesomeIcon icon={faHouse} className="text-lg" />
         </button>
-      </div>
+        <button
+          type="button"
+          onClick={refreshGitHubData}
+          aria-label="GitHub 데이터 새로고침"
+          title="GitHub 데이터 새로고침"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-transparent text-[#3c2b25] transition hover:text-[#9b6048] active:scale-90"
+        >
+          <FontAwesomeIcon icon={faArrowsRotate} className={`text-lg ${initialLoadState === "loading" ? "animate-spin" : ""}`} />
+        </button>
+        <button
+          type="button"
+          onClick={startNewNote}
+          aria-label="새 글쓰기"
+          title="새 글쓰기"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-transparent text-[#3c2b25] transition hover:text-[#9b6048] active:scale-90"
+        >
+          <FontAwesomeIcon icon={faPen} className="text-lg" />
+        </button>
+      </nav>
     </main>
   );
 }
