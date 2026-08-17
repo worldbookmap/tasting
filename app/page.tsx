@@ -450,7 +450,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.33";
+const APP_VERSION = "1.30";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -473,7 +473,6 @@ type Note = {
   category: Category;
   date: string;
   place: string;
-  price: string;
   people: string;
   type: string;
   name: string;
@@ -788,7 +787,6 @@ const getDefaultForm = (category: Category = "whisky"): FormState => ({
   category,
   date: new Date().toISOString().slice(0, 10),
   place: "",
-  price: "",
   people: "진욱",
   peopleCustom: "",
   type: category === "whisky" ? "싱글몰트" : category === "wine" ? "레드" : "녹차",
@@ -891,12 +889,40 @@ const postNotes = async (payload: { note: Note } | { deleteId: string }) => {
   }
 };
 
+const uploadNoteMedia = async (note: Note): Promise<Note> => {
+  const mediaFields = [
+    ["photo", "photoUrl"],
+    ["labelPhoto", "labelPhotoUrl"],
+    ["teaLeafPhoto", "teaLeafUrl"],
+  ] as const;
+  let nextNote = { ...note };
+
+  for (const [field, urlField] of mediaFields) {
+    const dataUrl = nextNote[field];
+    if (!dataUrl.startsWith("data:image/")) continue;
+
+    const response = await fetch("/api/media", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ noteId: nextNote.id, field, dataUrl }),
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok || typeof result?.url !== "string") {
+      throw new Error(typeof result?.error === "string" ? result.error : `사진 저장에 실패했습니다. (${response.status})`);
+    }
+
+    nextNote = { ...nextNote, [field]: "", [urlField]: result.url };
+  }
+
+  return nextNote;
+};
+
 const imageFileToDataUrl = async (file: File) => {
   const image = await createImageBitmap(file);
   let compressed: Blob | null = null;
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const maxDimension = 1600 * (0.82 ** attempt);
+    const maxDimension = 1400 * (0.82 ** attempt);
     const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
     const canvas = document.createElement("canvas");
     canvas.width = Math.max(1, Math.round(image.width * scale));
@@ -915,7 +941,7 @@ const imageFileToDataUrl = async (file: File) => {
       canvas.toBlob(resolve, "image/jpeg", Math.max(0.5, 0.84 - attempt * 0.08));
     });
 
-    if (compressed && compressed.size <= 700 * 1024) break;
+    if (compressed && compressed.size <= 450 * 1024) break;
   }
 
   image.close();
@@ -1186,7 +1212,15 @@ export default function HomePage() {
     };
 
     try {
-      const result = await postNotes({ note: record });
+      let recordWithMedia: Note;
+      try {
+        recordWithMedia = await uploadNoteMedia(record);
+      } catch (error) {
+        setShowToast(false);
+        globalThis.alert(error instanceof Error ? error.message : "사진 저장에 실패했습니다.");
+        return;
+      }
+      const result = await postNotes({ note: recordWithMedia });
 
       if (!result.ok) {
         setShowToast(false);
@@ -1196,7 +1230,7 @@ export default function HomePage() {
         return;
       }
 
-      setNotes((prev) => [record, ...prev]);
+      setNotes((prev) => [recordWithMedia, ...prev]);
       setView("archive");
       setArchiveFilter(category);
       setForm(getDefaultForm(category));
@@ -1266,7 +1300,15 @@ export default function HomePage() {
     };
 
     try {
-      const result = await postNotes({ note: draft });
+      let draftWithMedia: Note;
+      try {
+        draftWithMedia = await uploadNoteMedia(draft);
+      } catch (error) {
+        setShowToast(false);
+        globalThis.alert(error instanceof Error ? error.message : "사진 저장에 실패했습니다.");
+        return;
+      }
+      const result = await postNotes({ note: draftWithMedia });
 
       if (!result.ok) {
         setShowToast(false);
@@ -1276,8 +1318,8 @@ export default function HomePage() {
         return;
       }
 
-      setNotes((prev) => [draft, ...prev.filter((note) => note.id !== draft.id)]);
-      setSelectedNote(draft);
+      setNotes((prev) => [draftWithMedia, ...prev.filter((note) => note.id !== draftWithMedia.id)]);
+      setSelectedNote(draftWithMedia);
       setArchiveEditMode(false);
       setArchiveDraft(null);
       setToastMessage("GitHub 저장 완료");
@@ -1442,14 +1484,6 @@ export default function HomePage() {
                           <input value={form.place} onChange={(e) => updateField("place", e.target.value)} placeholder="예: 서울, 도쿄" className="form-label-input" />
                         </label>
                       </div>
-
-                      <label className="form-label-row">
-                        <span>가격</span>
-                        <div className="flex min-w-0 items-center gap-2">
-                          <input value={form.price} onChange={(e) => updateField("price", e.target.value)} inputMode="numeric" placeholder="예: 120000" className="form-label-input" />
-                          <span className="shrink-0 text-xs text-[#735f55]">원</span>
-                        </div>
-                      </label>
 
                       <div className="grid gap-3 md:grid-cols-2">
                         <div className="form-label-row">
@@ -1908,12 +1942,12 @@ export default function HomePage() {
       )}
 
       {selectedNote && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-[#1a130f]/55 p-2 pb-20 backdrop-blur-[2px] [touch-action:pan-y] [-webkit-overflow-scrolling:touch] sm:items-center sm:p-4" onClick={() => {
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-[#1a130f]/55 p-2 backdrop-blur-[2px] [touch-action:pan-y] [-webkit-overflow-scrolling:touch] sm:items-center sm:p-4" onClick={() => {
           setSelectedNote(null);
           setArchiveEditMode(false);
           setArchiveDraft(null);
         }}>
-          <div className="my-2 mb-16 w-full max-w-5xl overflow-visible rounded-[24px] border border-[#ebddd0] bg-[#fffaf6] p-3 shadow-[0_26px_60px_rgba(72,52,42,0.16)] sm:my-0 sm:mb-0 sm:max-h-[90dvh] sm:overflow-y-auto sm:rounded-[30px] sm:p-5 sm:overscroll-contain sm:[-webkit-overflow-scrolling:touch]" onClick={(e) => e.stopPropagation()}>
+          <div className="my-2 w-full max-w-5xl overflow-visible rounded-[24px] border border-[#ebddd0] bg-[#fffaf6] p-3 shadow-[0_26px_60px_rgba(72,52,42,0.16)] sm:my-0 sm:max-h-[90dvh] sm:overflow-y-auto sm:rounded-[30px] sm:p-5 sm:overscroll-contain sm:[-webkit-overflow-scrolling:touch]" onClick={(e) => e.stopPropagation()}>
             {Object.values(detailPanels).some(Boolean) && (
               <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[#1a130f]/55 p-4 backdrop-blur-[2px]" onClick={closeDetailPanels}>
                 <div className="w-full max-w-xl overflow-hidden rounded-[28px] border border-[#ebddd0] bg-[#fffaf6] shadow-[0_26px_60px_rgba(72,52,42,0.16)]" onClick={(e) => e.stopPropagation()}>
@@ -1990,20 +2024,6 @@ export default function HomePage() {
                       />
                     </label>
                   </div>
-
-                  <label className="form-label-row">
-                    <span>가격</span>
-                    <div className="flex min-w-0 items-center gap-2">
-                      <input
-                        value={archiveDraft.price}
-                        onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, price: e.target.value } : prev)}
-                        inputMode="numeric"
-                        placeholder="예: 120000"
-                        className="form-label-input"
-                      />
-                      <span className="shrink-0 text-xs text-[#735f55]">원</span>
-                    </div>
-                  </label>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <label className="form-label-row">
@@ -2399,7 +2419,6 @@ export default function HomePage() {
                       <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">장소</div><div className="mt-2 font-semibold">{selectedNote.place || "-"}</div></div>
                       <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">마신 사람</div><div className="mt-2 font-semibold">{selectedNote.people || "-"}</div></div>
                       <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">종류</div><div className="mt-2 font-semibold">{selectedNote.type || "-"}</div></div>
-                      <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">가격</div><div className="mt-2 font-semibold">{selectedNote.price ? `${selectedNote.price}원` : "-"}</div></div>
                       <div className="rounded-2xl bg-[#f5eee8] p-3 col-span-2"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">저장된 산지</div><div className="mt-2 font-semibold">{getSavedRegionLabel(selectedNote)}</div></div>
                     </div>
                     <div className="rounded-2xl bg-[#f8f2eb] p-4">
