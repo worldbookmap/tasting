@@ -450,7 +450,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.24";
+const APP_VERSION = "1.25";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -2478,7 +2478,8 @@ export default function HomePage() {
         </div>
       )}
 
-      <nav className="fixed inset-x-0 bottom-0 z-[55] flex justify-center gap-8 bg-transparent px-4 pb-[max(0.55rem,env(safe-area-inset-bottom))] pt-2 md:hidden" aria-label="빠른 메뉴">
+      <nav className="fixed inset-x-0 bottom-0 z-[55] flex justify-center bg-transparent px-4 pb-[max(0.55rem,env(safe-area-inset-bottom))] pt-2 md:hidden" aria-label="빠른 메뉴">
+        <div className="flex items-center gap-6 rounded-full border border-white/45 bg-white/30 px-4 py-1.5 shadow-[0_8px_24px_rgba(72,52,42,0.12),inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-xl">
         <button
           type="button"
           onClick={goHome}
@@ -2506,6 +2507,7 @@ export default function HomePage() {
         >
           <FontAwesomeIcon icon={faPen} className="text-lg" />
         </button>
+        </div>
       </nav>
     </main>
   );
