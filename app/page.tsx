@@ -1947,7 +1947,7 @@ export default function HomePage() {
           setArchiveEditMode(false);
           setArchiveDraft(null);
         }}>
-          <div className="my-2 w-full max-w-5xl overflow-visible rounded-[24px] border border-[#ebddd0] bg-[#fffaf6] p-3 shadow-[0_26px_60px_rgba(72,52,42,0.16)] sm:my-0 sm:max-h-[90dvh] sm:overflow-y-auto sm:rounded-[30px] sm:p-5 sm:overscroll-contain sm:[-webkit-overflow-scrolling:touch]" onClick={(e) => e.stopPropagation()}>
+          <div className="my-2 w-full max-w-5xl overflow-visible rounded-[24px] border border-[#ebddd0] bg-[#fffaf6] p-3 pb-24 shadow-[0_26px_60px_rgba(72,52,42,0.16)] sm:my-0 sm:max-h-[90dvh] sm:overflow-y-auto sm:rounded-[30px] sm:p-5 sm:pb-5 sm:overscroll-contain sm:[-webkit-overflow-scrolling:touch]" onClick={(e) => e.stopPropagation()}>
             {Object.values(detailPanels).some(Boolean) && (
               <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[#1a130f]/55 p-4 backdrop-blur-[2px]" onClick={closeDetailPanels}>
                 <div className="w-full max-w-xl overflow-hidden rounded-[28px] border border-[#ebddd0] bg-[#fffaf6] shadow-[0_26px_60px_rgba(72,52,42,0.16)]" onClick={(e) => e.stopPropagation()}>
@@ -1990,7 +1990,7 @@ export default function HomePage() {
               </div>
             )}
             {archiveEditMode && archiveDraft ? (
-              <div className="document-section-group mx-auto max-w-5xl">
+              <div className="document-section-group mx-auto max-w-5xl pb-20 sm:pb-0">
                 <div className="document-modal-shell p-3">
                   <div className="document-modal-header">
                     <div>
@@ -2428,7 +2428,7 @@ export default function HomePage() {
                         <p>맛: {selectedNote.taste || "-"}</p>
                         <p>피니시: {selectedNote.finish || "-"}</p>
                         <p>산지: {getSavedRegionLabel(selectedNote)}</p>
-                        <p>메모: {selectedNote.notes || "-"}</p>
+                        <p className="whitespace-pre-wrap">메모: {selectedNote.notes || "-"}</p>
                       </div>
                     </div>
                     {selectedNote.category === "wine" && (
