@@ -450,7 +450,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.29";
+const APP_VERSION = "1.30";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -473,6 +473,7 @@ type Note = {
   category: Category;
   date: string;
   place: string;
+  price: string;
   people: string;
   type: string;
   name: string;
@@ -787,6 +788,7 @@ const getDefaultForm = (category: Category = "whisky"): FormState => ({
   category,
   date: new Date().toISOString().slice(0, 10),
   place: "",
+  price: "",
   people: "진욱",
   peopleCustom: "",
   type: category === "whisky" ? "싱글몰트" : category === "wine" ? "레드" : "녹차",
@@ -1441,6 +1443,14 @@ export default function HomePage() {
                         </label>
                       </div>
 
+                      <label className="form-label-row">
+                        <span>가격</span>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <input value={form.price} onChange={(e) => updateField("price", e.target.value)} inputMode="numeric" placeholder="예: 120000" className="form-label-input" />
+                          <span className="shrink-0 text-xs text-[#735f55]">원</span>
+                        </div>
+                      </label>
+
                       <div className="grid gap-3 md:grid-cols-2">
                         <div className="form-label-row">
                           <span>마신 사람</span>
@@ -1898,12 +1908,12 @@ export default function HomePage() {
       )}
 
       {selectedNote && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-[#1a130f]/55 p-2 backdrop-blur-[2px] [touch-action:pan-y] [-webkit-overflow-scrolling:touch] sm:items-center sm:p-4" onClick={() => {
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-[#1a130f]/55 p-2 pb-20 backdrop-blur-[2px] [touch-action:pan-y] [-webkit-overflow-scrolling:touch] sm:items-center sm:p-4" onClick={() => {
           setSelectedNote(null);
           setArchiveEditMode(false);
           setArchiveDraft(null);
         }}>
-          <div className="my-2 w-full max-w-5xl overflow-visible rounded-[24px] border border-[#ebddd0] bg-[#fffaf6] p-3 shadow-[0_26px_60px_rgba(72,52,42,0.16)] sm:my-0 sm:max-h-[90dvh] sm:overflow-y-auto sm:rounded-[30px] sm:p-5 sm:overscroll-contain sm:[-webkit-overflow-scrolling:touch]" onClick={(e) => e.stopPropagation()}>
+          <div className="my-2 mb-16 w-full max-w-5xl overflow-visible rounded-[24px] border border-[#ebddd0] bg-[#fffaf6] p-3 shadow-[0_26px_60px_rgba(72,52,42,0.16)] sm:my-0 sm:mb-0 sm:max-h-[90dvh] sm:overflow-y-auto sm:rounded-[30px] sm:p-5 sm:overscroll-contain sm:[-webkit-overflow-scrolling:touch]" onClick={(e) => e.stopPropagation()}>
             {Object.values(detailPanels).some(Boolean) && (
               <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[#1a130f]/55 p-4 backdrop-blur-[2px]" onClick={closeDetailPanels}>
                 <div className="w-full max-w-xl overflow-hidden rounded-[28px] border border-[#ebddd0] bg-[#fffaf6] shadow-[0_26px_60px_rgba(72,52,42,0.16)]" onClick={(e) => e.stopPropagation()}>
@@ -1980,6 +1990,20 @@ export default function HomePage() {
                       />
                     </label>
                   </div>
+
+                  <label className="form-label-row">
+                    <span>가격</span>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <input
+                        value={archiveDraft.price}
+                        onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, price: e.target.value } : prev)}
+                        inputMode="numeric"
+                        placeholder="예: 120000"
+                        className="form-label-input"
+                      />
+                      <span className="shrink-0 text-xs text-[#735f55]">원</span>
+                    </div>
+                  </label>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <label className="form-label-row">
@@ -2375,6 +2399,7 @@ export default function HomePage() {
                       <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">장소</div><div className="mt-2 font-semibold">{selectedNote.place || "-"}</div></div>
                       <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">마신 사람</div><div className="mt-2 font-semibold">{selectedNote.people || "-"}</div></div>
                       <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">종류</div><div className="mt-2 font-semibold">{selectedNote.type || "-"}</div></div>
+                      <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">가격</div><div className="mt-2 font-semibold">{selectedNote.price ? `${selectedNote.price}원` : "-"}</div></div>
                       <div className="rounded-2xl bg-[#f5eee8] p-3 col-span-2"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">저장된 산지</div><div className="mt-2 font-semibold">{getSavedRegionLabel(selectedNote)}</div></div>
                     </div>
                     <div className="rounded-2xl bg-[#f8f2eb] p-4">
