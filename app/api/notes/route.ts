@@ -3,6 +3,7 @@ import { NextResponse } from "next/server.js";
 const repo = process.env.GITHUB_REPO ?? "worldbookmap/tasting";
 const token = process.env.GITHUB_TOKEN ?? "";
 const githubPath = "data/tasting-notes.json";
+const maxWriteAttempts = 3;
 
 type NoteRecord = {
   id?: string;
@@ -64,6 +65,11 @@ async function writeGitHubNotes(nextNotes: NoteRecord[], sha?: string) {
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
+    if (response.status === 409) {
+      const conflictError = new Error("GitHub 기록이 다른 기기에서 먼저 변경되었습니다.");
+      conflictError.name = "GitHubConflictError";
+      throw conflictError;
+    }
     throw new Error(`GitHub에 기록을 저장하지 못했습니다. (${response.status}) ${detail}`.trim());
   }
 }
@@ -99,30 +105,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "저장할 기록 정보가 없습니다." }, { status: 400 });
     }
 
-    const { notes: currentNotes, sha } = await readNotes();
-    let nextNotes: NoteRecord[] = [...currentNotes];
+    for (let attempt = 0; attempt < maxWriteAttempts; attempt += 1) {
+      const { notes: currentNotes, sha } = await readNotes();
+      let nextNotes: NoteRecord[] = [...currentNotes];
 
-    if (body?.deleteId) {
-      nextNotes = nextNotes.filter((note) => note.id !== body.deleteId);
-    } else if (body?.note) {
-      const incoming = body.note as NoteRecord;
-      const targetId = incoming.id;
+      if (body?.deleteId) {
+        nextNotes = nextNotes.filter((note) => note.id !== body.deleteId);
+      } else if (body?.note) {
+        const incoming = body.note as NoteRecord;
+        const targetId = incoming.id;
 
-      if (targetId) {
-        const existingIndex = nextNotes.findIndex((note) => note.id === targetId);
-        if (existingIndex >= 0) {
-          nextNotes = nextNotes.map((note) => (note.id === targetId ? { ...note, ...incoming } : note));
+        if (targetId) {
+          const existingIndex = nextNotes.findIndex((note) => note.id === targetId);
+          if (existingIndex >= 0) {
+            nextNotes = nextNotes.map((note) => (note.id === targetId ? { ...note, ...incoming } : note));
+          } else {
+            nextNotes = [incoming, ...nextNotes];
+          }
         } else {
           nextNotes = [incoming, ...nextNotes];
         }
-      } else {
-        nextNotes = [incoming, ...nextNotes];
+      }
+
+      try {
+        await writeNotes(nextNotes, sha);
+        return NextResponse.json({ ok: true, count: nextNotes.length, attempts: attempt + 1 });
+      } catch (error) {
+        if (!(error instanceof Error) || error.name !== "GitHubConflictError" || attempt === maxWriteAttempts - 1) {
+          throw error;
+        }
       }
     }
 
-    await writeNotes(nextNotes, sha);
-
-    return NextResponse.json({ ok: true, count: nextNotes.length });
+    throw new Error("GitHub 저장을 완료하지 못했습니다.");
   } catch (error) {
     console.error("Failed to save tasting note.", error);
     return NextResponse.json(
