@@ -17,6 +17,7 @@ import {
   faList,
   faPen,
   faSearch,
+  faSpinner,
   faTableCellsLarge,
   faTrash,
   faUpload,
@@ -447,7 +448,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.18";
+const APP_VERSION = "1.19";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -938,6 +939,7 @@ export default function HomePage() {
   const [detailPanels, setDetailPanels] = useState({ region: false, teaLeaf: false, label: false });
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("저장완료");
+  const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [distilleryQuery, setDistilleryQuery] = useState("");
   const [archiveDistilleryQuery, setArchiveDistilleryQuery] = useState("");
@@ -989,10 +991,10 @@ export default function HomePage() {
   }, [loadAttempt]);
 
   useEffect(() => {
-    if (!showToast) return;
+    if (!showToast || saving) return;
     const timer = globalThis.setTimeout(() => setShowToast(false), 2000);
     return () => globalThis.clearTimeout(timer);
-  }, [showToast]);
+  }, [saving, showToast]);
 
   const stats = useMemo(
     () => ({
@@ -1131,6 +1133,12 @@ export default function HomePage() {
   };
 
   const saveNote = async () => {
+    if (saving) return;
+
+    setSaving(true);
+    setToastMessage("GitHub에 저장 중");
+    setShowToast(true);
+
     const regionLabel =
       category === "whisky"
         ? (form.selectedDistillery?.name_ko || form.distilleryName || form.regionName)
@@ -1147,21 +1155,25 @@ export default function HomePage() {
       type: form.type || (category === "whisky" ? "싱글몰트" : category === "wine" ? "레드" : "녹차"),
     };
 
-    const result = await postNotes({ note: record });
+    try {
+      const result = await postNotes({ note: record });
 
-    if (!result.ok) {
-      if (typeof globalThis !== "undefined" && typeof globalThis.alert === "function") {
-        globalThis.alert(`저장에 실패했습니다.\n${result.error}`);
+      if (!result.ok) {
+        setShowToast(false);
+        if (typeof globalThis !== "undefined" && typeof globalThis.alert === "function") {
+          globalThis.alert(`저장에 실패했습니다.\n${result.error}`);
+        }
+        return;
       }
-      return;
-    }
 
-    setNotes((prev) => [record, ...prev]);
-    setView("archive");
-    setArchiveFilter(category);
-    setForm(getDefaultForm(category));
-    setToastMessage("저장완료");
-    setShowToast(true);
+      setNotes((prev) => [record, ...prev]);
+      setView("archive");
+      setArchiveFilter(category);
+      setForm(getDefaultForm(category));
+      setToastMessage("GitHub 저장 완료");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const confirmDeleteNote = async () => {
@@ -1211,6 +1223,11 @@ export default function HomePage() {
 
   const saveArchiveEdit = async () => {
     if (!archiveDraft) return;
+    if (saving) return;
+
+    setSaving(true);
+    setToastMessage("GitHub에 저장 중");
+    setShowToast(true);
 
     const draft: Note = {
       ...archiveDraft,
@@ -1218,21 +1235,25 @@ export default function HomePage() {
       distilleryName: archiveDraft.selectedDistillery?.name_ko || archiveDraft.distilleryName,
     };
 
-    const result = await postNotes({ note: draft });
+    try {
+      const result = await postNotes({ note: draft });
 
-    if (!result.ok) {
-      if (typeof globalThis !== "undefined" && typeof globalThis.alert === "function") {
-        globalThis.alert(`수정에 실패했습니다.\n${result.error}`);
+      if (!result.ok) {
+        setShowToast(false);
+        if (typeof globalThis !== "undefined" && typeof globalThis.alert === "function") {
+          globalThis.alert(`수정에 실패했습니다.\n${result.error}`);
+        }
+        return;
       }
-      return;
-    }
 
-    setNotes((prev) => [draft, ...prev.filter((note) => note.id !== draft.id)]);
-    setSelectedNote(draft);
-    setArchiveEditMode(false);
-    setArchiveDraft(null);
-    setToastMessage("저장완료");
-    setShowToast(true);
+      setNotes((prev) => [draft, ...prev.filter((note) => note.id !== draft.id)]);
+      setSelectedNote(draft);
+      setArchiveEditMode(false);
+      setArchiveDraft(null);
+      setToastMessage("GitHub 저장 완료");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const cancelArchiveEdit = () => {
@@ -1603,7 +1624,7 @@ export default function HomePage() {
 
                       <div className="flex justify-end gap-2.5">
                         <button type="button" onClick={() => setForm(getDefaultForm(category))} className="premium-button rounded-full border border-[#f1dccd] bg-[#fffaf7] px-4 py-2 text-[11.5px] font-medium text-[#4d372f] shadow-[0_4px_10px_rgba(136,100,82,0.05)]">초기화</button>
-                        <button type="button" onClick={saveNote} className="premium-button rounded-full bg-[#f6c8b2] px-4 py-2 text-[11.5px] font-medium text-[#402c28] shadow-[0_8px_18px_rgba(216,170,145,0.24)]">저장</button>
+                        <button type="button" disabled={saving} onClick={saveNote} className="premium-button inline-flex items-center gap-1.5 rounded-full bg-[#f6c8b2] px-4 py-2 text-[11.5px] font-medium text-[#402c28] shadow-[0_8px_18px_rgba(216,170,145,0.24)] disabled:cursor-wait disabled:opacity-60"><FontAwesomeIcon icon={saving ? faSpinner : faUpload} className={saving ? "animate-spin" : ""} />{saving ? "저장 중" : "저장"}</button>
                       </div>
                     </div>
                   </section>
@@ -1901,7 +1922,7 @@ export default function HomePage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <button type="button" onClick={cancelArchiveEdit} className="document-button document-button--ghost">취소</button>
-                      <button type="button" onClick={saveArchiveEdit} className="document-button document-button--primary">저장</button>
+                      <button type="button" disabled={saving} onClick={saveArchiveEdit} className="document-button document-button--primary disabled:cursor-wait disabled:opacity-60"><FontAwesomeIcon icon={saving ? faSpinner : faUpload} className={saving ? "animate-spin" : ""} />{saving ? "저장 중" : "저장"}</button>
                     </div>
                   </div>
                 </div>
@@ -2230,7 +2251,7 @@ export default function HomePage() {
                 </label>
 
                 <div className="flex items-center justify-end gap-2 border-t border-[#f0e3d8] pt-4">
-                  <button type="button" onClick={saveArchiveEdit} className="document-button document-button--primary">저장</button>
+                  <button type="button" disabled={saving} onClick={saveArchiveEdit} className="document-button document-button--primary disabled:cursor-wait disabled:opacity-60"><FontAwesomeIcon icon={saving ? faSpinner : faUpload} className={saving ? "animate-spin" : ""} />{saving ? "저장 중" : "저장"}</button>
                   <button type="button" onClick={cancelArchiveEdit} className="document-button document-button--ghost">취소</button>
                   <button type="button" onClick={() => { cancelArchiveEdit(); setSelectedNote(null); }} className="document-button document-button--ghost">닫기</button>
                 </div>
@@ -2424,8 +2445,8 @@ export default function HomePage() {
       )}
 
       {showToast && (
-        <div className="fixed bottom-6 right-6 z-[60] rounded-full border border-[#e9d9cc] bg-[linear-gradient(180deg,#231c1a,#140f0d)] px-5 py-3 text-sm font-medium text-[#f8f4f0] shadow-[0_20px_35px_rgba(26,19,15,0.22)]">
-          <div className="flex items-center gap-2"><FontAwesomeIcon icon={faCheck} className="text-[#c8e3bb]" />{toastMessage}</div>
+        <div className="fixed bottom-6 right-6 z-[60] rounded-full border border-[#e9d9cc] bg-[linear-gradient(180deg,#231c1a,#140f0d)] px-5 py-3 text-sm font-medium text-[#f8f4f0] shadow-[0_20px_35px_rgba(26,19,15,0.22)]" role="status" aria-live="polite">
+          <div className="flex items-center gap-2"><FontAwesomeIcon icon={saving ? faSpinner : faCheck} className={saving ? "animate-spin text-[#f1d39e]" : "text-[#c8e3bb]"} />{toastMessage}</div>
         </div>
       )}
     </main>

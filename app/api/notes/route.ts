@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server.js";
-import { promises as fs } from "node:fs";
-import path from "node:path";
 
 const repo = process.env.GITHUB_REPO ?? "worldbookmap/tasting";
 const token = process.env.GITHUB_TOKEN ?? "";
-const dataPath = path.join(process.cwd(), "data", "tasting-notes.json");
 const githubPath = "data/tasting-notes.json";
 
 type NoteRecord = {
@@ -16,25 +13,6 @@ type NotesSnapshot = {
   notes: NoteRecord[];
   sha?: string;
 };
-
-async function readLocalNotes(): Promise<NotesSnapshot> {
-  try {
-    const raw = await fs.readFile(dataPath, "utf8");
-    const parsed = JSON.parse(raw || "[]");
-    if (!Array.isArray(parsed)) throw new Error("로컬 기록 파일 형식이 올바르지 않습니다.");
-    return { notes: parsed };
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    await fs.mkdir(path.dirname(dataPath), { recursive: true });
-    await fs.writeFile(dataPath, "[]", "utf8");
-    return { notes: [] };
-  }
-}
-
-async function writeLocalNotes(nextNotes: NoteRecord[]) {
-  await fs.mkdir(path.dirname(dataPath), { recursive: true });
-  await fs.writeFile(dataPath, JSON.stringify(nextNotes, null, 2), "utf8");
-}
 
 const githubApi = `https://api.github.com/repos/${repo}/contents/${githubPath}`;
 const githubHeaders = {
@@ -90,15 +68,14 @@ async function writeGitHubNotes(nextNotes: NoteRecord[], sha?: string) {
   }
 }
 
-const readNotes = () => (token ? readGitHubNotes() : readLocalNotes());
+const readNotes = () => {
+  if (!token) throw new Error("GitHub 저장을 위해 GITHUB_TOKEN 환경 변수가 필요합니다.");
+  return readGitHubNotes();
+};
 
 async function writeNotes(nextNotes: NoteRecord[], sha?: string) {
-  if (token) {
-    await writeGitHubNotes(nextNotes, sha);
-    return;
-  }
-
-  await writeLocalNotes(nextNotes);
+  if (!token) throw new Error("GitHub 저장을 위해 GITHUB_TOKEN 환경 변수가 필요합니다.");
+  await writeGitHubNotes(nextNotes, sha);
 }
 
 export async function GET() {
