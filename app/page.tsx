@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { FeatureCollection, GeoJsonObject } from "geojson";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
+  faArrowsRotate,
   faBookOpen,
   faCalendarAlt,
   faCamera,
@@ -448,7 +449,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.22";
+const APP_VERSION = "1.23";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -1297,7 +1298,7 @@ export default function HomePage() {
 
   return (
     <main
-      className="min-h-screen"
+      className="min-h-screen pb-16 md:pb-0"
       style={
         view !== "landing"
           ? {
@@ -2449,6 +2450,19 @@ export default function HomePage() {
           <div className="flex items-center gap-2"><FontAwesomeIcon icon={saving ? faSpinner : faCheck} className={saving ? "animate-spin text-[#f1d39e]" : "text-[#c8e3bb]"} />{toastMessage}</div>
         </div>
       )}
+
+      <div className="fixed inset-x-0 bottom-0 z-[55] flex justify-center border-t border-[#e5d3c6]/90 bg-[#fffaf6]/90 px-4 pb-[max(0.55rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgba(72,52,42,0.1)] backdrop-blur-md md:hidden">
+        <button
+          type="button"
+          onClick={() => globalThis.location.reload()}
+          aria-label="페이지 새로고침"
+          title="새로고침"
+          className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#d8b49e] bg-[#2d211d] px-5 py-2 text-xs font-medium text-[#fff8f2] shadow-[0_6px_16px_rgba(45,33,29,0.18)] transition hover:bg-[#44312a] active:scale-95"
+        >
+          <FontAwesomeIcon icon={faArrowsRotate} />
+          <span>새로고침</span>
+        </button>
+      </div>
     </main>
   );
 }
