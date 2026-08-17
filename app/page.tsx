@@ -448,7 +448,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.19";
+const APP_VERSION = "1.20";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -2445,7 +2445,7 @@ export default function HomePage() {
       )}
 
       {showToast && (
-        <div className="fixed bottom-6 right-6 z-[60] rounded-full border border-[#e9d9cc] bg-[linear-gradient(180deg,#231c1a,#140f0d)] px-5 py-3 text-sm font-medium text-[#f8f4f0] shadow-[0_20px_35px_rgba(26,19,15,0.22)]" role="status" aria-live="polite">
+        <div className={`${saving ? "fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" : "fixed bottom-6 right-6"} z-[60] rounded-full border border-[#e9d9cc] bg-[linear-gradient(180deg,#231c1a,#140f0d)] px-5 py-3 text-sm font-medium text-[#f8f4f0] shadow-[0_20px_35px_rgba(26,19,15,0.22)]`} role="status" aria-live="polite">
           <div className="flex items-center gap-2"><FontAwesomeIcon icon={saving ? faSpinner : faCheck} className={saving ? "animate-spin text-[#f1d39e]" : "text-[#c8e3bb]"} />{toastMessage}</div>
         </div>
       )}
