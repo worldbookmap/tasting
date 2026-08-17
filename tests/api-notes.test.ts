@@ -56,6 +56,31 @@ test("POST saves a note through the GitHub Contents API", async () => {
   );
 });
 
+test("POST reports a configuration error before contacting GitHub without a token", async () => {
+  process.chdir(mkdtempSync(path.join(tmpdir(), "tasting-notes-no-token-")));
+  delete process.env.GITHUB_TOKEN;
+
+  let fetchCalled = false;
+  globalThis.fetch = async () => {
+    fetchCalled = true;
+    return new Response("unexpected", { status: 500 });
+  };
+
+  const routeUrl = pathToFileURL(path.join(originalCwd, "app/api/notes/route.ts")).href + `?no-token=${Date.now()}`;
+  const { POST } = await import(routeUrl);
+  const response = await POST(
+    new Request("http://localhost/api/notes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ note: { id: "no-token", category: "tea", name: "저장 확인" } }),
+    }),
+  );
+
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), { ok: false, error: "GitHub 저장을 위해 GITHUB_TOKEN 환경 변수가 필요합니다." });
+  assert.equal(fetchCalled, false);
+});
+
 test("POST preserves notes when the GitHub file is too large for inline content", async () => {
   process.chdir(mkdtempSync(path.join(tmpdir(), "tasting-notes-large-")));
   process.env.GITHUB_TOKEN = "test-token";

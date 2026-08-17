@@ -99,6 +99,13 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    if (!token) {
+      return NextResponse.json(
+        { ok: false, error: "GitHub 저장을 위해 GITHUB_TOKEN 환경 변수가 필요합니다." },
+        { status: 503 },
+      );
+    }
+
     const body = await request.json();
 
     if (!body?.deleteId && !body?.note) {
