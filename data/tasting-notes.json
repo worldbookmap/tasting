@@ -1,20 +1,20 @@
 [
   {
-    "category": "whisky",
+    "category": "tea",
     "date": "2026-08-08",
-    "place": "ㅋㅋ",
+    "place": "나나아",
     "people": "진욱",
     "peopleCustom": "",
-    "type": "싱글몰트",
-    "name": "테스트",
+    "type": "녹차",
+    "name": "나나나나나",
     "photo": "",
     "photoUrl": "",
     "labelPhoto": "",
     "labelPhotoUrl": "",
     "selectedDistillery": null,
     "distilleryName": "",
-    "regionName": "",
-    "teaVariety": "",
+    "regionName": "광시",
+    "teaVariety": "ㅏ나안",
     "teaLeafPhoto": "",
     "teaLeafUrl": "",
     "aroma": "",
@@ -28,8 +28,8 @@
     "complexity": 3,
     "balance": 3,
     "notes": "",
-    "id": "a80acc7e-f2fc-415a-a054-bb56299ad3d5",
-    "createdAt": "2026-08-17T06:40:04.850Z"
+    "id": "496f2b1a-e056-4d98-bb72-4852dcb98469",
+    "createdAt": "2026-08-17T06:41:29.710Z"
   },
   {
     "category": "tea",
