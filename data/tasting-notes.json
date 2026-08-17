@@ -61,7 +61,8 @@
     "balance": 3,
     "notes": "취명헌 구매, 가격 350,000",
     "id": "6ae0561e-82ad-4851-8464-cdced9c4d8dc",
-    "createdAt": "2026-08-17T06:38:18.726Z"
+    "createdAt": "2026-08-17T06:38:18.726Z",
+    "price": "350000"
   },
   {
     "category": "tea",
