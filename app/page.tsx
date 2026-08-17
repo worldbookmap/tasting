@@ -450,7 +450,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.26";
+const APP_VERSION = "1.27";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -1387,7 +1387,7 @@ export default function HomePage() {
         <div className="min-h-screen px-1 py-2.5 sm:px-1.5 md:px-6 md:py-5">
           <div className="mx-auto max-w-[1280px] overflow-hidden rounded-[28px] border border-white/30 shadow-[0_30px_60px_rgba(46,31,25,0.16)]" style={{ background: "transparent", border: "none", boxShadow: "none" }}>
             <div className="p-1.5 sm:p-2 md:p-5">
-              <header className="relative overflow-hidden rounded-[22px] border border-[#d8bd91]/45 bg-[linear-gradient(135deg,rgba(35,27,27,0.96)_0%,rgba(77,42,48,0.94)_52%,rgba(36,57,49,0.95)_100%)] px-2.5 py-2.5 text-[#fff9f2] shadow-[0_18px_38px_rgba(35,23,24,0.2),inset_0_1px_0_rgba(255,244,224,0.16)] backdrop-blur-xl sm:px-3 sm:py-3 md:px-5 md:py-3.5">
+              <header className="relative overflow-hidden rounded-[22px] border border-[#d8bd91]/45 bg-[linear-gradient(135deg,rgba(35,27,27,0.82)_0%,rgba(77,42,48,0.78)_52%,rgba(36,57,49,0.8)_100%)] px-2.5 py-2.5 text-[#fff9f2] shadow-[0_18px_38px_rgba(35,23,24,0.16),inset_0_1px_0_rgba(255,244,224,0.16)] backdrop-blur-xl sm:px-3 sm:py-3 md:px-5 md:py-3.5">
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(245,215,168,0.72),transparent)]" aria-hidden="true" />
                 <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between md:gap-4">
                   <div className="flex items-center gap-3">
