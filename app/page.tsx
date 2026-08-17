@@ -448,7 +448,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.20";
+const APP_VERSION = "1.21";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -935,7 +935,7 @@ export default function HomePage() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
-  const [archiveViewMode, setArchiveViewMode] = useState<"card" | "list">("card");
+  const [archiveViewMode, setArchiveViewMode] = useState<"card" | "list">("list");
   const [detailPanels, setDetailPanels] = useState({ region: false, teaLeaf: false, label: false });
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("저장완료");
