@@ -450,7 +450,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.25";
+const APP_VERSION = "1.26";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -2478,37 +2478,39 @@ export default function HomePage() {
         </div>
       )}
 
-      <nav className="fixed inset-x-0 bottom-0 z-[55] flex justify-center bg-transparent px-4 pb-[max(0.55rem,env(safe-area-inset-bottom))] pt-2 md:hidden" aria-label="빠른 메뉴">
-        <div className="flex items-center gap-6 rounded-full border border-white/45 bg-white/30 px-4 py-1.5 shadow-[0_8px_24px_rgba(72,52,42,0.12),inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-xl">
+      {view !== "landing" && (
+        <nav className="fixed inset-x-0 bottom-0 z-[55] flex justify-center bg-transparent px-4 pb-[max(0.55rem,env(safe-area-inset-bottom))] pt-2 md:hidden" aria-label="빠른 메뉴">
+          <div className="flex items-center gap-5 rounded-full border border-white/45 bg-white/30 px-3.5 py-1 shadow-[0_8px_24px_rgba(72,52,42,0.12),inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-xl">
         <button
           type="button"
           onClick={goHome}
           aria-label="홈"
           title="홈"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-transparent text-[#3c2b25] transition hover:text-[#9b6048] active:scale-90"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-transparent text-[#3c2b25] transition hover:text-[#9b6048] active:scale-90"
         >
-          <FontAwesomeIcon icon={faHouse} className="text-lg" />
+          <FontAwesomeIcon icon={faHouse} className="text-base" />
         </button>
         <button
           type="button"
           onClick={refreshGitHubData}
           aria-label="GitHub 데이터 새로고침"
           title="GitHub 데이터 새로고침"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-transparent text-[#3c2b25] transition hover:text-[#9b6048] active:scale-90"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-transparent text-[#3c2b25] transition hover:text-[#9b6048] active:scale-90"
         >
-          <FontAwesomeIcon icon={faArrowsRotate} className={`text-lg ${initialLoadState === "loading" ? "animate-spin" : ""}`} />
+          <FontAwesomeIcon icon={faArrowsRotate} className={`text-base ${initialLoadState === "loading" ? "animate-spin" : ""}`} />
         </button>
         <button
           type="button"
           onClick={startNewNote}
           aria-label="새 글쓰기"
           title="새 글쓰기"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-transparent text-[#3c2b25] transition hover:text-[#9b6048] active:scale-90"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-transparent text-[#3c2b25] transition hover:text-[#9b6048] active:scale-90"
         >
-          <FontAwesomeIcon icon={faPen} className="text-lg" />
+          <FontAwesomeIcon icon={faPen} className="text-base" />
         </button>
-        </div>
-      </nav>
+          </div>
+        </nav>
+      )}
     </main>
   );
 }
