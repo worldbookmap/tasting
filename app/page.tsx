@@ -324,7 +324,7 @@ function WhiskyDistillerySelectionMap({
   onSelect: (distillery: Distillery) => void;
 }) {
   const focused = items.length <= 30 ? items[0] : selected;
-  const center: [number, number] = focused
+      const center: [number, number] = focused
     ? [focused.latitude, focused.longitude]
     : [56.5, -4.2];
 
@@ -451,7 +451,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.39";
+const APP_VERSION = "1.40";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -975,7 +975,7 @@ export default function HomePage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [archiveViewMode, setArchiveViewMode] = useState<"card" | "list">("list");
-  const [detailPanels, setDetailPanels] = useState({ region: false, teaLeaf: false, label: false });
+  const [detailPanels, setDetailPanels] = useState({ region: false, teaLeaf: false, label: false, distillery: false });
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("저장완료");
   const [saving, setSaving] = useState(false);
@@ -1432,17 +1432,19 @@ export default function HomePage() {
   const isWhisky = category === "whisky";
   const isWine = category === "wine";
   const isTea = category === "tea";
-  const detailDistillery = selectedNote?.selectedDistillery ?? null;
-  const toggleDetailPanel = (key: "region" | "teaLeaf" | "label") => {
+  const detailDistillery = selectedNote
+    ? selectedNote.selectedDistillery ?? distilleries.find((item) => item.name_ko === selectedNote.distilleryName || item.name === selectedNote.distilleryName) ?? null
+    : null;
+  const toggleDetailPanel = (key: "region" | "teaLeaf" | "label" | "distillery") => {
     setDetailPanels((prev) => {
-      const next = { region: false, teaLeaf: false, label: false };
+      const next = { region: false, teaLeaf: false, label: false, distillery: false };
       next[key] = !prev[key];
       return next;
     });
   };
 
   const closeDetailPanels = () => {
-    setDetailPanels({ region: false, teaLeaf: false, label: false });
+    setDetailPanels({ region: false, teaLeaf: false, label: false, distillery: false });
   };
 
   useEffect(() => {
@@ -2098,7 +2100,7 @@ export default function HomePage() {
                 <div className="w-full max-w-xl overflow-hidden rounded-[28px] border border-[#ebddd0] bg-[#fffaf6] shadow-[0_26px_60px_rgba(72,52,42,0.16)]" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-between gap-3 border-b border-[#f0e3d8] bg-[linear-gradient(180deg,#fffaf6,#f5ece5)] px-4 py-3">
                     <div className="text-[9px] tracking-[0.22em] text-[#7e665d] uppercase">
-                      {detailPanels.label ? "Label" : detailPanels.region ? "Region" : "Tea Leaf"}
+                      {detailPanels.label ? "Label" : detailPanels.region ? "Region" : detailPanels.distillery ? "Distillery" : "Tea Leaf"}
                     </div>
                     <button type="button" onClick={closeDetailPanels} className="document-button document-button--ghost h-8 min-h-0 px-2.5 py-1 text-[10px]">닫기</button>
                   </div>
@@ -2130,6 +2132,15 @@ export default function HomePage() {
                         </div>
                       );
                     })()}
+                    {detailPanels.distillery && detailDistillery && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between gap-3 rounded-2xl bg-[#f8f2eb] px-3 py-2.5">
+                          <span className="text-[10px] tracking-[0.16em] text-[#7a665f] uppercase">Distillery</span>
+                          <strong className="text-sm text-[#2d2320]">{detailDistillery.name_ko}</strong>
+                        </div>
+                        <WhiskyPinMap distillery={detailDistillery} />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2551,8 +2562,8 @@ export default function HomePage() {
                           </button>
                         )}
                         {selectedNote.category === "whisky" && detailDistillery && (
-                          <button type="button" onClick={() => setSelectedNote((prev) => prev ? { ...prev, regionName: prev.regionName || detailDistillery.name_ko } : prev)} className="inline-flex items-center justify-center rounded-full border border-[#e8d9ca] bg-white/60 px-3 py-1.5 text-[10px] font-medium text-[#4d352f] shadow-[0_4px_10px_rgba(111,87,72,0.04)]">
-                            증류소
+                          <button type="button" onClick={() => toggleDetailPanel("distillery")} className="inline-flex items-center justify-center rounded-full border border-[#e8d9ca] bg-white/60 px-3 py-1.5 text-[10px] font-medium text-[#4d352f] shadow-[0_4px_10px_rgba(111,87,72,0.04)]">
+                            {detailPanels.distillery ? "증류소 숨기기" : "증류소 보기"}
                           </button>
                         )}
                       </div>
