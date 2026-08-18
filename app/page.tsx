@@ -451,7 +451,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.38";
+const APP_VERSION = "1.39";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -2573,7 +2573,7 @@ export default function HomePage() {
                         <p><strong>맛:</strong> {renderInformationLinks(selectedNote.taste)}</p>
                         <p><strong>피니시:</strong> {renderInformationLinks(selectedNote.finish)}</p>
                         <p><strong>산지:</strong> {getSavedRegionLabel(selectedNote)}</p>
-                        <p className="whitespace-pre-wrap"><strong>메모:</strong> {renderInformationLinks(selectedNote.notes)}</p>
+                        <p className="whitespace-pre-wrap"><strong>메모:</strong><br />{renderInformationLinks(selectedNote.notes)}</p>
                       </div>
                     </div>
                     {selectedNote.category === "wine" && (
