@@ -14,6 +14,7 @@ import {
   faCheck,
   faChevronLeft,
   faChevronRight,
+  faCircleInfo,
   faGlassCheers,
   faHouse,
   faList,
@@ -450,7 +451,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.30";
+const APP_VERSION = "1.32";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -497,6 +498,14 @@ type Note = {
   complexity: number;
   balance: number;
   notes: string;
+  createdAt: string;
+};
+
+type InformationRecord = {
+  id: string;
+  title: string;
+  content: string;
+  details: string;
   createdAt: string;
 };
 
@@ -956,7 +965,7 @@ const imageFileToDataUrl = async (file: File) => {
 };
 
 export default function HomePage() {
-  const [view, setView] = useState<"landing" | "tasting" | "archive" | "calendar">("landing");
+  const [view, setView] = useState<"landing" | "tasting" | "archive" | "calendar" | "information">("landing");
   const [category, setCategory] = useState<Category>("whisky");
   const [form, setForm] = useState<FormState>(getDefaultForm("whisky"));
   const [notes, setNotes] = useState<Note[]>([]);
@@ -984,6 +993,10 @@ export default function HomePage() {
   const [savingTags, setSavingTags] = useState(false);
   const [initialLoadState, setInitialLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [loadAttempt, setLoadAttempt] = useState(0);
+  const [information, setInformation] = useState<InformationRecord[]>([]);
+  const [selectedInformation, setSelectedInformation] = useState<InformationRecord | null>(null);
+  const [informationDraft, setInformationDraft] = useState<InformationRecord | null>(null);
+  const [informationForm, setInformationForm] = useState({ title: "", content: "", details: "" });
 
   const refreshGitHubData = () => {
     setInitialLoadState("loading");
@@ -1020,21 +1033,24 @@ export default function HomePage() {
     let cancelled = false;
     const load = async () => {
       try {
-        const [notesResponse, tagsResponse] = await Promise.all([
+        const [notesResponse, tagsResponse, informationResponse] = await Promise.all([
           fetch("/api/notes", { cache: "no-store" }),
           fetch("/api/tags", { cache: "no-store" }),
+          fetch("/api/information", { cache: "no-store" }),
         ]);
 
-        if (!notesResponse.ok || !tagsResponse.ok) throw new Error("Initial data request failed");
+        if (!notesResponse.ok || !tagsResponse.ok || !informationResponse.ok) throw new Error("Initial data request failed");
 
-        const [notesResult, tagsResult] = await Promise.all([
+        const [notesResult, tagsResult, informationResult] = await Promise.all([
           notesResponse.json(),
           tagsResponse.json(),
+          informationResponse.json(),
         ]);
         if (cancelled) return;
 
         setNotes(Array.isArray(notesResult) ? notesResult : []);
         setCustomTags(tagsResult as CustomTags);
+        setInformation(Array.isArray(informationResult) ? informationResult : []);
         setInitialLoadState("ready");
       } catch {
         if (!cancelled) setInitialLoadState("error");
@@ -1099,6 +1115,24 @@ export default function HomePage() {
     if (!archiveDistilleryQuery.trim()) return distilleries as Distillery[];
     return distilleries.filter((item) => `${item.name} ${item.name_ko}`.toLowerCase().includes(archiveDistilleryQuery.toLowerCase())) as Distillery[];
   }, [archiveDistilleryQuery]);
+
+  const informationTitles = useMemo(
+    () => information.map((item) => item.title).filter(Boolean).sort((a, b) => b.length - a.length),
+    [information],
+  );
+
+  const renderInformationLinks = (text: string) => {
+    if (!text || !informationTitles.length) return text || "-";
+    const pattern = new RegExp(`(${informationTitles.map((title) => title.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")).join("|")})`, "g");
+    return text.split(pattern).map((part, index) => {
+      const matched = information.find((item) => item.title === part);
+      return matched ? (
+        <button key={`${matched.id}-${index}`} type="button" onClick={() => setSelectedInformation(matched)} className="font-semibold text-[#a45f4b] underline decoration-[#dba28e] underline-offset-2 hover:text-[#784238]">
+          {part}
+        </button>
+      ) : <span key={`${part}-${index}`}>{part}</span>;
+    });
+  };
 
   const updateField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -1328,6 +1362,65 @@ export default function HomePage() {
     }
   };
 
+  const saveInformation = async () => {
+    if (saving || !informationForm.title.trim()) {
+      if (!informationForm.title.trim()) globalThis.alert("제목을 입력해주세요.");
+      return;
+    }
+    setSaving(true);
+    setToastMessage("GitHub에 저장 중");
+    setShowToast(true);
+    const record: InformationRecord = {
+      id: informationDraft?.id || crypto.randomUUID(),
+      title: informationForm.title.trim(),
+      content: informationForm.content,
+      details: informationForm.details,
+      createdAt: informationDraft?.createdAt || new Date().toISOString(),
+    };
+    try {
+      const response = await fetch("/api/information", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ record }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "정보를 저장하지 못했습니다.");
+      setInformation(Array.isArray(result.records) ? result.records : [record]);
+      setInformationDraft(null);
+      setInformationForm({ title: "", content: "", details: "" });
+      setToastMessage("GitHub 저장 완료");
+    } catch (error) {
+      setShowToast(false);
+      globalThis.alert(error instanceof Error ? error.message : "정보 저장에 실패했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const editInformation = (record: InformationRecord) => {
+    setInformationDraft(record);
+    setInformationForm({ title: record.title, content: record.content, details: record.details });
+  };
+
+  const deleteInformation = async (record: InformationRecord) => {
+    if (!globalThis.confirm(`'${record.title}' 정보를 삭제할까요?`)) return;
+    const response = await fetch("/api/information", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deleteId: record.id }),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      globalThis.alert(result.error || "정보를 삭제하지 못했습니다.");
+      return;
+    }
+    setInformation(result.records || []);
+    setSelectedInformation(null);
+    setInformationDraft(null);
+    setToastMessage("삭제 완료");
+    setShowToast(true);
+  };
+
   const cancelArchiveEdit = () => {
     setArchiveEditMode(false);
     setArchiveDraft(null);
@@ -1351,7 +1444,8 @@ export default function HomePage() {
   };
 
   useEffect(() => {
-    closeDetailPanels();
+    const timer = globalThis.setTimeout(closeDetailPanels, 0);
+    return () => globalThis.clearTimeout(timer);
   }, [selectedNote?.id]);
 
   useEffect(() => {
@@ -1446,15 +1540,16 @@ export default function HomePage() {
                       <div className="brand-script mt-1 text-[2.1rem] leading-[0.9] tracking-[0.04em] text-[#fff8ef] [text-shadow:0_2px_12px_rgba(0,0,0,0.24)] md:text-[2.5rem]">A Slow, Lovely Pour</div>
                     </div>
                   </div>
-                  <nav className="flex w-full flex-nowrap items-center justify-start gap-1 overflow-x-auto scrollbar-none md:w-auto md:justify-end md:gap-1.5">
+                  <nav className="mobile-nav flex w-full flex-nowrap items-center justify-start gap-1 overflow-visible md:w-auto md:justify-end md:gap-1.5" aria-label="주 메뉴">
                     {[
-                      { key: "tasting", label: "Tasting Note", icon: faBookOpen },
-                      { key: "archive", label: "Archive", icon: faSearch },
-                      { key: "calendar", label: "Calendar", icon: faCalendarAlt },
+                      { key: "tasting", label: "Tasting Note", mobileLabel: "쓰기", icon: faPen },
+                      { key: "archive", label: "Archive", mobileLabel: "기록", icon: faBookOpen },
+                      { key: "calendar", label: "Calendar", mobileLabel: "달력", icon: faCalendarAlt },
+                      { key: "information", label: "Information", mobileLabel: "정보", icon: faCircleInfo },
                     ].map((item) => (
-                      <button key={item.key} type="button" onClick={() => setView(item.key as "tasting" | "archive" | "calendar")} className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.25 py-1.75 text-[9.5px] font-medium transition-all duration-200 sm:px-3 sm:text-[10.5px] md:px-4 md:text-sm ${view === item.key ? "border-[#f0d6a8]/80 bg-[#f6e7cc] text-[#342723] shadow-[0_7px_16px_rgba(13,8,9,0.3)]" : "border-white/15 bg-white/[0.06] text-[#f7eee7]/85 hover:border-[#d9bd8d]/45 hover:bg-white/[0.11] hover:text-white"}`}>
+                      <button key={item.key} type="button" aria-label={item.mobileLabel} data-tooltip={item.mobileLabel} onClick={() => setView(item.key as "tasting" | "archive" | "calendar" | "information")} className={`mobile-nav-button group relative inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.25 py-1.75 text-[9.5px] font-medium transition-all duration-200 sm:px-3 sm:text-[10.5px] md:px-4 md:text-sm ${view === item.key ? "border-[#f0d6a8]/80 bg-[#f6e7cc] text-[#342723] shadow-[0_7px_16px_rgba(13,8,9,0.3)]" : "border-white/15 bg-white/[0.06] text-[#f7eee7]/85 hover:border-[#d9bd8d]/45 hover:bg-white/[0.11] hover:text-white"}`}>
                         <FontAwesomeIcon icon={item.icon} className="shrink-0 text-[9px] md:text-[12px]" />
-                        <span className="truncate">{item.label}</span>
+                        <span className="mobile-nav-label truncate">{item.label}</span>
                       </button>
                     ))}
                   </nav>
@@ -1902,6 +1997,42 @@ export default function HomePage() {
                         </div>
                       </div>
                     </div>
+                  </section>
+                )}
+
+                {view === "information" && (
+                  <section className="archive-doc-shell rounded-[24px] border border-white/20 bg-white/30 p-2.5 shadow-[0_8px_18px_rgba(77,58,48,0.04)] backdrop-blur-sm sm:p-3 md:p-6">
+                    <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                      <div>
+                        <div className="text-[9px] font-semibold tracking-[0.22em] text-[#80675d]">TASTING GLOSSARY</div>
+                        <h2 className="mt-1 text-2xl font-semibold text-[#2b201d]">Information</h2>
+                        <p className="mt-1 text-xs text-[#76635b]">테이스팅 중 만나는 개념을 짧은 문서로 정리해두세요.</p>
+                      </div>
+                      <button type="button" onClick={() => { setInformationDraft(null); setInformationForm({ title: "", content: "", details: "" }); }} className="document-button document-button--primary">새 개념 추가</button>
+                    </div>
+
+                    <div className="mb-6 grid gap-3 rounded-[22px] border border-[#e5d3c6] bg-white/55 p-4 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+                      <label className="form-label-row"><span>타이틀</span><input value={informationForm.title} onChange={(e) => setInformationForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="예: 호향" className="form-label-input" /></label>
+                      <label className="form-label-row"><span>내용</span><textarea value={informationForm.content} onChange={(e) => setInformationForm((prev) => ({ ...prev, content: e.target.value }))} placeholder="개념을 한두 문장으로 정리하세요." className="form-label-textarea min-h-[86px]" /></label>
+                      <label className="form-label-row md:col-span-2"><span>세부 내용</span><textarea value={informationForm.details} onChange={(e) => setInformationForm((prev) => ({ ...prev, details: e.target.value }))} placeholder="추가로 기억할 내용이나 예시" className="form-label-textarea min-h-[110px]" /></label>
+                      <div className="flex justify-end gap-2 md:col-span-2">
+                        {informationDraft && <button type="button" onClick={() => { setInformationDraft(null); setInformationForm({ title: "", content: "", details: "" }); }} className="document-button document-button--ghost">취소</button>}
+                        <button type="button" disabled={saving} onClick={saveInformation} className="document-button document-button--primary disabled:cursor-wait disabled:opacity-60"><FontAwesomeIcon icon={saving ? faSpinner : faUpload} className={saving ? "animate-spin" : ""} />{informationDraft ? "수정 저장" : "저장"}</button>
+                      </div>
+                    </div>
+
+                    {information.length ? (
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {information.map((record) => <article key={record.id} className="archive-card">
+                          <button type="button" onClick={() => setSelectedInformation(record)} className="block w-full text-left">
+                            <div className="archive-card-meta"><span>CONCEPT</span><span>{formatDate(record.createdAt.slice(0, 10))}</span></div>
+                            <h3 className="archive-card-title">{record.title}</h3>
+                            <p className="archive-card-subtitle line-clamp-3 whitespace-pre-wrap">{record.content || "내용 없음"}</p>
+                          </button>
+                          <div className="mt-3 flex justify-end gap-2 border-t border-[#eadbd0] pt-3"><button type="button" onClick={() => editInformation(record)} className="document-button document-button--ghost min-h-0 px-2.5 py-1 text-[10px]">수정</button><button type="button" onClick={() => deleteInformation(record)} className="document-button document-button--ghost min-h-0 px-2.5 py-1 text-[10px] text-[#8b5147]">삭제</button></div>
+                        </article>)}
+                      </div>
+                    ) : <div className="rounded-[22px] border border-dashed border-[#d7c5b3] bg-white/60 p-8 text-center text-[#5d4d47]">아직 정리된 개념이 없습니다.</div>}
                   </section>
                 )}
               </div>
@@ -2424,11 +2555,11 @@ export default function HomePage() {
                     <div className="rounded-2xl bg-[#f8f2eb] p-4">
                       <div className="mb-2 font-semibold text-[#2d2320]">기본 정보</div>
                       <div className="space-y-2 text-[#5a4a43]">
-                        <p>향: {selectedNote.aroma || "-"}</p>
-                        <p>맛: {selectedNote.taste || "-"}</p>
-                        <p>피니시: {selectedNote.finish || "-"}</p>
+                        <p>향: {renderInformationLinks(selectedNote.aroma)}</p>
+                        <p>맛: {renderInformationLinks(selectedNote.taste)}</p>
+                        <p>피니시: {renderInformationLinks(selectedNote.finish)}</p>
                         <p>산지: {getSavedRegionLabel(selectedNote)}</p>
-                        <p className="whitespace-pre-wrap">메모: {selectedNote.notes || "-"}</p>
+                        <p className="whitespace-pre-wrap">메모: {renderInformationLinks(selectedNote.notes)}</p>
                       </div>
                     </div>
                     {selectedNote.category === "wine" && (
@@ -2496,6 +2627,21 @@ export default function HomePage() {
                 <button type="button" onClick={() => setTagModal(null)} className="document-button document-button--ghost min-h-0 px-3 py-1.75 text-[10px]">취소</button>
                 <button type="button" disabled={savingTags} onClick={() => addCustomTags(tagModal.field, tagModal.value)} className="document-button document-button--primary min-h-0 px-3 py-1.75 text-[10px] disabled:cursor-wait disabled:opacity-60">{savingTags ? "저장 중" : "추가하기"}</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedInformation && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#1a130f]/55 p-4 backdrop-blur-[2px]" onClick={() => setSelectedInformation(null)}>
+          <div className="document-modal-shell w-full max-w-xl p-4 sm:p-5" onClick={(event) => event.stopPropagation()}>
+            <div className="document-modal-header">
+              <div><div className="text-[9px] tracking-[0.22em] text-[#7e665d]">INFORMATION</div><h2 className="mt-1 text-xl font-semibold text-[#2b201d]">{selectedInformation.title}</h2></div>
+              <button type="button" onClick={() => setSelectedInformation(null)} className="document-button document-button--ghost h-8 min-h-0 px-2.5 py-1 text-[10px]">닫기</button>
+            </div>
+            <div className="user-serif mt-4 space-y-4 text-sm leading-7 text-[#493a34]">
+              <div><div className="document-section-label">내용</div><p className="whitespace-pre-wrap">{selectedInformation.content || "-"}</p></div>
+              {selectedInformation.details && <div className="border-t border-[#eadbd0] pt-4"><div className="document-section-label">세부 내용</div><p className="whitespace-pre-wrap">{selectedInformation.details}</p></div>}
             </div>
           </div>
         </div>
