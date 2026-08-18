@@ -451,7 +451,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.36";
+const APP_VERSION = "1.38";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -2035,14 +2035,14 @@ export default function HomePage() {
                         <table className="information-table w-full min-w-[420px] border-collapse text-left">
                           <thead><tr><th>타이틀</th><th>내용</th></tr></thead>
                           <tbody>{information.map((record) => <tr key={record.id} onClick={() => setSelectedInformation(record)} tabIndex={0} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") setSelectedInformation(record); }}>
-                            <td className="font-semibold text-[#2a201d]">{record.title}</td><td><span className="information-content-preview">{record.content || "-"}</span></td>
+                            <td className="information-title-cell font-semibold text-[#2a201d]">{record.title}</td><td><span className="information-content-preview">{record.content || "-"}</span></td>
                           </tr>)}</tbody>
                         </table>
                       </div>
                     ) : (
                       <div className="grid gap-3 md:grid-cols-2">
                         {information.map((record) => <button type="button" key={record.id} onClick={() => setSelectedInformation(record)} className="archive-card text-left">
-                          <h3 className="archive-card-title">{record.title}</h3>
+                          <h3 className="archive-card-title information-title-cell">{record.title}</h3>
                           <p className="archive-card-subtitle information-content-preview whitespace-pre-wrap">{record.content || "내용 없음"}</p>
                         </button>)}
                       </div>
@@ -2569,11 +2569,11 @@ export default function HomePage() {
                     <div className="rounded-2xl bg-[#f8f2eb] p-4">
                       <div className="mb-2 font-semibold text-[#2d2320]">기본 정보</div>
                       <div className="space-y-2 text-[#5a4a43]">
-                        <p>향: {renderInformationLinks(selectedNote.aroma)}</p>
-                        <p>맛: {renderInformationLinks(selectedNote.taste)}</p>
-                        <p>피니시: {renderInformationLinks(selectedNote.finish)}</p>
-                        <p>산지: {getSavedRegionLabel(selectedNote)}</p>
-                        <p className="whitespace-pre-wrap">메모: {renderInformationLinks(selectedNote.notes)}</p>
+                        <p><strong>향:</strong> {renderInformationLinks(selectedNote.aroma)}</p>
+                        <p><strong>맛:</strong> {renderInformationLinks(selectedNote.taste)}</p>
+                        <p><strong>피니시:</strong> {renderInformationLinks(selectedNote.finish)}</p>
+                        <p><strong>산지:</strong> {getSavedRegionLabel(selectedNote)}</p>
+                        <p className="whitespace-pre-wrap"><strong>메모:</strong> {renderInformationLinks(selectedNote.notes)}</p>
                       </div>
                     </div>
                     {selectedNote.category === "wine" && (

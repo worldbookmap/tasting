@@ -231,6 +231,12 @@ textarea {
   line-clamp: 3;
 }
 
+.information-title-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .document-panel {
   border: 1px solid rgba(221, 197, 176, 0.8);
   border-radius: 24px;
