@@ -451,7 +451,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.32";
+const APP_VERSION = "1.35";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -997,6 +997,7 @@ export default function HomePage() {
   const [selectedInformation, setSelectedInformation] = useState<InformationRecord | null>(null);
   const [informationDraft, setInformationDraft] = useState<InformationRecord | null>(null);
   const [informationForm, setInformationForm] = useState({ title: "", content: "", details: "" });
+  const [informationViewMode, setInformationViewMode] = useState<"table" | "list">("table");
 
   const refreshGitHubData = () => {
     setInitialLoadState("loading");
@@ -1400,6 +1401,7 @@ export default function HomePage() {
   const editInformation = (record: InformationRecord) => {
     setInformationDraft(record);
     setInformationForm({ title: record.title, content: record.content, details: record.details });
+    setSelectedInformation(null);
   };
 
   const deleteInformation = async (record: InformationRecord) => {
@@ -1547,9 +1549,10 @@ export default function HomePage() {
                       { key: "calendar", label: "Calendar", mobileLabel: "달력", icon: faCalendarAlt },
                       { key: "information", label: "Information", mobileLabel: "정보", icon: faCircleInfo },
                     ].map((item) => (
-                      <button key={item.key} type="button" aria-label={item.mobileLabel} data-tooltip={item.mobileLabel} onClick={() => setView(item.key as "tasting" | "archive" | "calendar" | "information")} className={`mobile-nav-button group relative inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.25 py-1.75 text-[9.5px] font-medium transition-all duration-200 sm:px-3 sm:text-[10.5px] md:px-4 md:text-sm ${view === item.key ? "border-[#f0d6a8]/80 bg-[#f6e7cc] text-[#342723] shadow-[0_7px_16px_rgba(13,8,9,0.3)]" : "border-white/15 bg-white/[0.06] text-[#f7eee7]/85 hover:border-[#d9bd8d]/45 hover:bg-white/[0.11] hover:text-white"}`}>
-                        <FontAwesomeIcon icon={item.icon} className="shrink-0 text-[9px] md:text-[12px]" />
-                        <span className="mobile-nav-label truncate">{item.label}</span>
+                      <button key={item.key} type="button" aria-label={item.mobileLabel} onClick={() => setView(item.key as "tasting" | "archive" | "calendar" | "information")} className={`mobile-nav-button group relative inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.25 py-1.75 text-[9.5px] font-medium transition-all duration-200 sm:px-3 sm:text-[10.5px] md:px-4 md:text-sm ${view === item.key ? "mobile-nav-button-active border-[#f0d6a8]/80 bg-[#f6e7cc] text-[#342723] shadow-[0_7px_16px_rgba(13,8,9,0.3)]" : "border-white/15 bg-white/[0.06] text-[#f7eee7]/85 hover:border-[#d9bd8d]/45 hover:bg-white/[0.11] hover:text-white"}`}>
+                        <FontAwesomeIcon icon={item.icon} className="mobile-nav-icon shrink-0 text-[9px] md:text-[12px]" />
+                        <span className="mobile-nav-label truncate md:hidden">{item.mobileLabel}</span>
+                        <span className="hidden truncate md:inline">{item.label}</span>
                       </button>
                     ))}
                   </nav>
@@ -2008,7 +2011,13 @@ export default function HomePage() {
                         <h2 className="mt-1 text-2xl font-semibold text-[#2b201d]">Information</h2>
                         <p className="mt-1 text-xs text-[#76635b]">테이스팅 중 만나는 개념을 짧은 문서로 정리해두세요.</p>
                       </div>
-                      <button type="button" onClick={() => { setInformationDraft(null); setInformationForm({ title: "", content: "", details: "" }); }} className="document-button document-button--primary">새 개념 추가</button>
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center gap-1 rounded-full border border-[#e4d7c8] bg-gradient-to-r from-[#fffaf6] via-[#f7f0ea] to-[#f0e4db] p-1.5 shadow-[0_6px_18px_rgba(72,52,42,0.08)]">
+                          <button type="button" onClick={() => setInformationViewMode("table")} className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition-all ${informationViewMode === "table" ? "bg-[#2a201d] text-white shadow-md shadow-[#2a201d]/20" : "text-[#42332d] hover:bg-white/70"}`} aria-label="표 보기" title="표 보기"><FontAwesomeIcon icon={faTableCellsLarge} className="text-sm" /></button>
+                          <button type="button" onClick={() => setInformationViewMode("list")} className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition-all ${informationViewMode === "list" ? "bg-[#2a201d] text-white shadow-md shadow-[#2a201d]/20" : "text-[#42332d] hover:bg-white/70"}`} aria-label="목록 보기" title="목록 보기"><FontAwesomeIcon icon={faList} className="text-sm" /></button>
+                        </div>
+                        <button type="button" onClick={() => { setInformationDraft(null); setInformationForm({ title: "", content: "", details: "" }); }} className="document-button document-button--primary">새 개념 추가</button>
+                      </div>
                     </div>
 
                     <div className="mb-6 grid gap-3 rounded-[22px] border border-[#e5d3c6] bg-white/55 p-4 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
@@ -2021,16 +2030,22 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    {information.length ? (
+                    {information.length ? informationViewMode === "table" ? (
+                      <div className="information-table-wrap overflow-x-auto rounded-[20px] border border-[#eadbd0] bg-white/60">
+                        <table className="information-table w-full min-w-[620px] border-collapse text-left">
+                          <thead><tr><th>타이틀</th><th>내용</th><th>세부 내용</th><th>작성일</th></tr></thead>
+                          <tbody>{information.map((record) => <tr key={record.id} onClick={() => setSelectedInformation(record)} tabIndex={0} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") setSelectedInformation(record); }}>
+                            <td className="font-semibold text-[#2a201d]">{record.title}</td><td>{record.content || "-"}</td><td>{record.details || "-"}</td><td className="whitespace-nowrap">{formatDate(record.createdAt.slice(0, 10))}</td>
+                          </tr>)}</tbody>
+                        </table>
+                      </div>
+                    ) : (
                       <div className="grid gap-3 md:grid-cols-2">
-                        {information.map((record) => <article key={record.id} className="archive-card">
-                          <button type="button" onClick={() => setSelectedInformation(record)} className="block w-full text-left">
-                            <div className="archive-card-meta"><span>CONCEPT</span><span>{formatDate(record.createdAt.slice(0, 10))}</span></div>
-                            <h3 className="archive-card-title">{record.title}</h3>
-                            <p className="archive-card-subtitle line-clamp-3 whitespace-pre-wrap">{record.content || "내용 없음"}</p>
-                          </button>
-                          <div className="mt-3 flex justify-end gap-2 border-t border-[#eadbd0] pt-3"><button type="button" onClick={() => editInformation(record)} className="document-button document-button--ghost min-h-0 px-2.5 py-1 text-[10px]">수정</button><button type="button" onClick={() => deleteInformation(record)} className="document-button document-button--ghost min-h-0 px-2.5 py-1 text-[10px] text-[#8b5147]">삭제</button></div>
-                        </article>)}
+                        {information.map((record) => <button type="button" key={record.id} onClick={() => setSelectedInformation(record)} className="archive-card text-left">
+                          <div className="archive-card-meta"><span>CONCEPT</span><span>{formatDate(record.createdAt.slice(0, 10))}</span></div>
+                          <h3 className="archive-card-title">{record.title}</h3>
+                          <p className="archive-card-subtitle line-clamp-3 whitespace-pre-wrap">{record.content || "내용 없음"}</p>
+                        </button>)}
                       </div>
                     ) : <div className="rounded-[22px] border border-dashed border-[#d7c5b3] bg-white/60 p-8 text-center text-[#5d4d47]">아직 정리된 개념이 없습니다.</div>}
                   </section>
@@ -2637,7 +2652,11 @@ export default function HomePage() {
           <div className="document-modal-shell w-full max-w-xl p-4 sm:p-5" onClick={(event) => event.stopPropagation()}>
             <div className="document-modal-header">
               <div><div className="text-[9px] tracking-[0.22em] text-[#7e665d]">INFORMATION</div><h2 className="mt-1 text-xl font-semibold text-[#2b201d]">{selectedInformation.title}</h2></div>
-              <button type="button" onClick={() => setSelectedInformation(null)} className="document-button document-button--ghost h-8 min-h-0 px-2.5 py-1 text-[10px]">닫기</button>
+              <div className="flex items-center gap-1.5">
+                <button type="button" onClick={() => editInformation(selectedInformation)} className="document-icon-button" aria-label="정보 수정" title="수정"><FontAwesomeIcon icon={faPen} /></button>
+                <button type="button" onClick={() => deleteInformation(selectedInformation)} className="document-icon-button document-icon-button--danger" aria-label="정보 삭제" title="삭제"><FontAwesomeIcon icon={faTrash} /></button>
+                <button type="button" onClick={() => setSelectedInformation(null)} className="document-button document-button--ghost h-8 min-h-0 px-2.5 py-1 text-[10px]">닫기</button>
+              </div>
             </div>
             <div className="user-serif mt-4 space-y-4 text-sm leading-7 text-[#493a34]">
               <div><div className="document-section-label">내용</div><p className="whitespace-pre-wrap">{selectedInformation.content || "-"}</p></div>
