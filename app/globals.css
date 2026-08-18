@@ -223,6 +223,14 @@ textarea {
   border-bottom: 0;
 }
 
+.information-content-preview {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
 .document-panel {
   border: 1px solid rgba(221, 197, 176, 0.8);
   border-radius: 24px;

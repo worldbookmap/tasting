@@ -451,7 +451,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.35";
+const APP_VERSION = "1.36";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -2032,19 +2032,18 @@ export default function HomePage() {
 
                     {information.length ? informationViewMode === "table" ? (
                       <div className="information-table-wrap overflow-x-auto rounded-[20px] border border-[#eadbd0] bg-white/60">
-                        <table className="information-table w-full min-w-[620px] border-collapse text-left">
-                          <thead><tr><th>타이틀</th><th>내용</th><th>세부 내용</th><th>작성일</th></tr></thead>
+                        <table className="information-table w-full min-w-[420px] border-collapse text-left">
+                          <thead><tr><th>타이틀</th><th>내용</th></tr></thead>
                           <tbody>{information.map((record) => <tr key={record.id} onClick={() => setSelectedInformation(record)} tabIndex={0} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") setSelectedInformation(record); }}>
-                            <td className="font-semibold text-[#2a201d]">{record.title}</td><td>{record.content || "-"}</td><td>{record.details || "-"}</td><td className="whitespace-nowrap">{formatDate(record.createdAt.slice(0, 10))}</td>
+                            <td className="font-semibold text-[#2a201d]">{record.title}</td><td><span className="information-content-preview">{record.content || "-"}</span></td>
                           </tr>)}</tbody>
                         </table>
                       </div>
                     ) : (
                       <div className="grid gap-3 md:grid-cols-2">
                         {information.map((record) => <button type="button" key={record.id} onClick={() => setSelectedInformation(record)} className="archive-card text-left">
-                          <div className="archive-card-meta"><span>CONCEPT</span><span>{formatDate(record.createdAt.slice(0, 10))}</span></div>
                           <h3 className="archive-card-title">{record.title}</h3>
-                          <p className="archive-card-subtitle line-clamp-3 whitespace-pre-wrap">{record.content || "내용 없음"}</p>
+                          <p className="archive-card-subtitle information-content-preview whitespace-pre-wrap">{record.content || "내용 없음"}</p>
                         </button>)}
                       </div>
                     ) : <div className="rounded-[22px] border border-dashed border-[#d7c5b3] bg-white/60 p-8 text-center text-[#5d4d47]">아직 정리된 개념이 없습니다.</div>}
