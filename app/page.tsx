@@ -451,7 +451,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.42";
+const APP_VERSION = "1.44";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -1643,19 +1643,20 @@ export default function HomePage() {
                             />
                           </div>
                         </label>
-                      </div>
-
-                      <div className="grid gap-3 md:grid-cols-2">
-                        <label className="form-label-row">
-                          <span>가격</span>
-                          <input inputMode="numeric" value={form.price} onChange={(e) => updateField("price", e.target.value)} placeholder="예: 35000" className="form-label-input" />
-                        </label>
                         {isTea ? (
+                          <div className="form-label-row">
+                            <span>가격</span>
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              <input inputMode="numeric" value={form.price} onChange={(e) => updateField("price", e.target.value)} placeholder="가격 (예: 35000)" className="form-label-input" />
+                              <input inputMode="decimal" value={form.teaAmount} onChange={(e) => updateField("teaAmount", e.target.value)} placeholder="용량 g (예: 50)" className="form-label-input" />
+                            </div>
+                          </div>
+                        ) : (
                           <label className="form-label-row">
-                            <span>용량 (g)</span>
-                            <input inputMode="decimal" value={form.teaAmount} onChange={(e) => updateField("teaAmount", e.target.value)} placeholder="예: 50" className="form-label-input" />
+                            <span>가격</span>
+                            <input inputMode="numeric" value={form.price} onChange={(e) => updateField("price", e.target.value)} placeholder="예: 35000" className="form-label-input" />
                           </label>
-                        ) : <div aria-hidden="true" />}
+                        )}
                       </div>
 
                       {isTea && (
