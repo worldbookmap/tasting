@@ -451,7 +451,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.40";
+const APP_VERSION = "1.41";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -1971,10 +1971,11 @@ export default function HomePage() {
                       <div className="space-y-4">
                         <div className="rounded-[28px] border border-[#e9dfd3] bg-white/70 p-4">
                           <div className="mb-3 text-sm font-semibold text-[#382d28]">통계 카드</div>
-                          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+                          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
                             <div className="rounded-2xl bg-[#f5ece3] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a655e]">total</div><div className="mt-2 text-2xl font-semibold text-[#261e1b]">{notes.length}</div></div>
                             <div className="rounded-2xl bg-[#f5ece3] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a655e]">whisky</div><div className="mt-2 text-2xl font-semibold text-[#261e1b]">{stats.whisky}</div></div>
-                            <div className="rounded-2xl bg-[#f5ece3] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a655e]">wine + tea</div><div className="mt-2 text-2xl font-semibold text-[#261e1b]">{stats.wine + stats.tea}</div></div>
+                            <div className="rounded-2xl bg-[#f5ece3] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a655e]">wine</div><div className="mt-2 text-2xl font-semibold text-[#261e1b]">{stats.wine}</div></div>
+                            <div className="rounded-2xl bg-[#f5ece3] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a655e]">tea</div><div className="mt-2 text-2xl font-semibold text-[#261e1b]">{stats.tea}</div></div>
                           </div>
                         </div>
 
