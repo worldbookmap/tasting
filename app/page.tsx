@@ -451,7 +451,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.44";
+const APP_VERSION = "1.45";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -2240,24 +2240,34 @@ export default function HomePage() {
                         />
                       </label>
                     )}
-                    <label className="form-label-row">
-                      <span>가격</span>
-                      <input
-                        inputMode="numeric"
-                        value={archiveDraft.price || ""}
-                        onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, price: e.target.value } : prev)}
-                        placeholder="예: 35000"
-                        className="form-label-input"
-                      />
-                    </label>
-                    {archiveDraft.category === "tea" && (
+                    {archiveDraft.category === "tea" ? (
+                      <div className="form-label-row">
+                        <span>가격</span>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <input
+                            inputMode="numeric"
+                            value={archiveDraft.price || ""}
+                            onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, price: e.target.value } : prev)}
+                            placeholder="가격 (예: 35000)"
+                            className="form-label-input"
+                          />
+                          <input
+                            inputMode="decimal"
+                            value={archiveDraft.teaAmount || ""}
+                            onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, teaAmount: e.target.value } : prev)}
+                            placeholder="용량 g (예: 50)"
+                            className="form-label-input"
+                          />
+                        </div>
+                      </div>
+                    ) : (
                       <label className="form-label-row">
-                        <span>용량 (g)</span>
+                        <span>가격</span>
                         <input
-                          inputMode="decimal"
-                          value={archiveDraft.teaAmount || ""}
-                          onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, teaAmount: e.target.value } : prev)}
-                          placeholder="예: 50"
+                          inputMode="numeric"
+                          value={archiveDraft.price || ""}
+                          onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, price: e.target.value } : prev)}
+                          placeholder="예: 35000"
                           className="form-label-input"
                         />
                       </label>
