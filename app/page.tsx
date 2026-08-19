@@ -451,7 +451,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.45";
+const APP_VERSION = "1.47";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -531,15 +531,6 @@ const resolvePeople = (value: string, customValue: string) => {
   return Array.from(new Set([...selected, ...custom])).join(", ");
 };
 
-const getPeopleFormValues = (value: string) => {
-  if (value === "함께") return { people: "진욱, 지선", peopleCustom: "" };
-
-  const people = parsePeople(value);
-  const selected: string[] = people.filter((person) => person === "진욱" || person === "지선");
-  const custom = people.filter((person) => person !== "진욱" && person !== "지선");
-  if (custom.length) selected.push("직접입력");
-  return { people: selected.join(", "), peopleCustom: custom.join(", ") };
-};
 type RegionPoint = {
   name: string;
   center: [number, number];
@@ -1324,18 +1315,6 @@ export default function HomePage() {
     setDeleteConfirm({ id, name: target?.name || "이 기록" });
   };
 
-  const editNote = (note: Note) => {
-    const peopleValues = getPeopleFormValues(note.people);
-    setCategory(note.category);
-    setForm({
-      ...getDefaultForm(note.category),
-      ...note,
-      ...peopleValues,
-      selectedDistillery: note.selectedDistillery || null,
-    });
-    setView("tasting");
-  };
-
   const startArchiveEdit = (note: Note) => {
     setArchiveDraft({ ...note });
     setArchiveDistilleryQuery("");
@@ -1646,7 +1625,7 @@ export default function HomePage() {
                         {isTea ? (
                           <div className="form-label-row">
                             <span>가격</span>
-                            <div className="grid gap-2 sm:grid-cols-2">
+                            <div className="grid gap-2 lg:grid-cols-2">
                               <input inputMode="numeric" value={form.price} onChange={(e) => updateField("price", e.target.value)} placeholder="가격 (예: 35000)" className="form-label-input" />
                               <input inputMode="decimal" value={form.teaAmount} onChange={(e) => updateField("teaAmount", e.target.value)} placeholder="용량 g (예: 50)" className="form-label-input" />
                             </div>
@@ -2243,7 +2222,7 @@ export default function HomePage() {
                     {archiveDraft.category === "tea" ? (
                       <div className="form-label-row">
                         <span>가격</span>
-                        <div className="grid gap-2 sm:grid-cols-2">
+                        <div className="grid gap-2 lg:grid-cols-2">
                           <input
                             inputMode="numeric"
                             value={archiveDraft.price || ""}
