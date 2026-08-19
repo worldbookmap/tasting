@@ -451,7 +451,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.41";
+const APP_VERSION = "1.42";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -477,6 +477,8 @@ type Note = {
   people: string;
   type: string;
   name: string;
+  price: string;
+  teaAmount: string;
   photo: string;
   photoUrl: string;
   labelPhoto: string;
@@ -800,6 +802,8 @@ const getDefaultForm = (category: Category = "whisky"): FormState => ({
   peopleCustom: "",
   type: category === "whisky" ? "싱글몰트" : category === "wine" ? "레드" : "녹차",
   name: "",
+  price: "",
+  teaAmount: "",
   photo: "",
   photoUrl: "",
   labelPhoto: "",
@@ -828,6 +832,24 @@ const formatDate = (date: string) => {
   const parsed = new Date(date);
   if (Number.isNaN(parsed.getTime())) return date;
   return `${parsed.getFullYear()}.${parsed.getMonth() + 1}.${parsed.getDate()}`;
+};
+
+const formatPrice = (price: string) => {
+  const numericPrice = Number(price.replace(/,/g, "").trim());
+  return price.trim() && Number.isFinite(numericPrice) ? `${numericPrice.toLocaleString("ko-KR")}원` : price.trim() || "-";
+};
+
+const formatPriceDetails = (note: Pick<Note, "category" | "price" | "teaAmount">) => {
+  if (!note.price?.trim()) return "-";
+  if (note.category !== "tea") return formatPrice(note.price);
+
+  const numericPrice = Number(note.price.replace(/,/g, "").trim());
+  const numericAmount = Number(note.teaAmount?.replace(/,/g, "").trim());
+  if (!note.teaAmount?.trim()) return `${formatPrice(note.price)} / -g`;
+  if (!Number.isFinite(numericPrice) || !Number.isFinite(numericAmount) || numericAmount <= 0) {
+    return `${formatPrice(note.price)} / ${note.teaAmount}g`;
+  }
+  return `${formatPrice(note.price)} / ${note.teaAmount}g (g당 ${Math.round(numericPrice / numericAmount).toLocaleString("ko-KR")}원)`;
 };
 
 const getTagOptions = (category: Category) => {
@@ -1576,16 +1598,13 @@ export default function HomePage() {
                     <div className="space-y-5">
                       <div className="grid gap-2.5 md:grid-cols-2 md:gap-3">
                         <label className="form-label-row">
+                          <span>이름</span>
+                          <input value={form.name} onChange={(e) => updateField("name", e.target.value)} placeholder={isTea ? "예: 우전 2024" : isWhisky ? "예: Glenlivet 12" : "예: Châteauneuf-du-Pape"} className="form-label-input" />
+                        </label>
+                        <label className="form-label-row">
                           <span>마신날</span>
                           <input type="date" value={form.date} onChange={(e) => updateField("date", e.target.value)} className="form-label-input" />
                         </label>
-                        <label className="form-label-row">
-                          <span>장소</span>
-                          <input value={form.place} onChange={(e) => updateField("place", e.target.value)} placeholder="예: 서울, 도쿄" className="form-label-input" />
-                        </label>
-                      </div>
-
-                      <div className="grid gap-3 md:grid-cols-2">
                         <div className="form-label-row">
                           <span>마신 사람</span>
                           <div className="min-w-0">
@@ -1610,9 +1629,10 @@ export default function HomePage() {
                             <input value={form.peopleCustom} onChange={(e) => updateField("peopleCustom", e.target.value)} placeholder="이름 입력" className="form-label-input" />
                           </label>
                         )}
-                      </div>
-
-                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="form-label-row">
+                          <span>장소</span>
+                          <input value={form.place} onChange={(e) => updateField("place", e.target.value)} placeholder="예: 서울, 도쿄" className="form-label-input" />
+                        </div>
                         <label className="form-label-row">
                           <span>종류</span>
                           <div className="min-w-0">
@@ -1623,23 +1643,25 @@ export default function HomePage() {
                             />
                           </div>
                         </label>
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <label className="form-label-row">
+                          <span>가격</span>
+                          <input inputMode="numeric" value={form.price} onChange={(e) => updateField("price", e.target.value)} placeholder="예: 35000" className="form-label-input" />
+                        </label>
                         {isTea ? (
                           <label className="form-label-row">
-                            <span>세부품종</span>
-                            <input value={form.teaVariety} onChange={(e) => updateField("teaVariety", e.target.value)} placeholder="예: 대운본, 우전" className="form-label-input" />
+                            <span>용량 (g)</span>
+                            <input inputMode="decimal" value={form.teaAmount} onChange={(e) => updateField("teaAmount", e.target.value)} placeholder="예: 50" className="form-label-input" />
                           </label>
-                        ) : (
-                          <label className="form-label-row">
-                            <span>이름</span>
-                            <input value={form.name} onChange={(e) => updateField("name", e.target.value)} placeholder={isWhisky ? "예: Glenlivet 12" : "예: Châteauneuf-du-Pape"} className="form-label-input" />
-                          </label>
-                        )}
+                        ) : <div aria-hidden="true" />}
                       </div>
 
                       {isTea && (
                         <label className="form-label-row">
-                          <span>이름</span>
-                          <input value={form.name} onChange={(e) => updateField("name", e.target.value)} placeholder="예: 우전 2024" className="form-label-input" />
+                          <span>세부품종</span>
+                          <input value={form.teaVariety} onChange={(e) => updateField("teaVariety", e.target.value)} placeholder="예: 대운본, 우전" className="form-label-input" />
                         </label>
                       )}
 
@@ -2164,7 +2186,15 @@ export default function HomePage() {
                 <div className="document-section-group">
                   <div className="grid gap-4 md:grid-cols-2">
                     <label className="form-label-row">
-                      <span>날짜</span>
+                      <span>이름</span>
+                      <input
+                        value={archiveDraft.name}
+                        onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, name: e.target.value } : prev)}
+                        className="form-label-input"
+                      />
+                    </label>
+                    <label className="form-label-row">
+                      <span>마신날</span>
                       <input
                         type="date"
                         value={archiveDraft.date}
@@ -2173,21 +2203,18 @@ export default function HomePage() {
                       />
                     </label>
                     <label className="form-label-row">
-                      <span>장소</span>
-                      <input
-                        value={archiveDraft.place}
-                        onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, place: e.target.value } : prev)}
-                        className="form-label-input"
-                      />
-                    </label>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <label className="form-label-row">
                       <span>마신 사람</span>
                       <input
                         value={archiveDraft.people}
                         onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, people: e.target.value } : prev)}
+                        className="form-label-input"
+                      />
+                    </label>
+                    <label className="form-label-row">
+                      <span>장소</span>
+                      <input
+                        value={archiveDraft.place}
+                        onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, place: e.target.value } : prev)}
                         className="form-label-input"
                       />
                     </label>
@@ -2212,16 +2239,29 @@ export default function HomePage() {
                         />
                       </label>
                     )}
-                  </div>
-
                     <label className="form-label-row">
-                    <span>이름</span>
-                    <input
-                      value={archiveDraft.name}
-                      onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, name: e.target.value } : prev)}
-                      className="form-label-input"
-                    />
-                  </label>
+                      <span>가격</span>
+                      <input
+                        inputMode="numeric"
+                        value={archiveDraft.price || ""}
+                        onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, price: e.target.value } : prev)}
+                        placeholder="예: 35000"
+                        className="form-label-input"
+                      />
+                    </label>
+                    {archiveDraft.category === "tea" && (
+                      <label className="form-label-row">
+                        <span>용량 (g)</span>
+                        <input
+                          inputMode="decimal"
+                          value={archiveDraft.teaAmount || ""}
+                          onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, teaAmount: e.target.value } : prev)}
+                          placeholder="예: 50"
+                          className="form-label-input"
+                        />
+                      </label>
+                    )}
+                  </div>
                 </div>
 
                 <div className="document-section-group min-w-0 max-w-full overflow-hidden">
@@ -2572,10 +2612,12 @@ export default function HomePage() {
                   </div>
                   <div className="user-serif space-y-4 text-sm text-[#3c2d26]">
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">날짜</div><div className="mt-2 font-semibold">{formatDate(selectedNote.date)}</div></div>
-                      <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">장소</div><div className="mt-2 font-semibold">{selectedNote.place || "-"}</div></div>
+                      <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">이름</div><div className="mt-2 font-semibold">{selectedNote.name || "-"}</div></div>
+                      <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">마신날</div><div className="mt-2 font-semibold">{formatDate(selectedNote.date)}</div></div>
                       <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">마신 사람</div><div className="mt-2 font-semibold">{selectedNote.people || "-"}</div></div>
+                      <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">장소</div><div className="mt-2 font-semibold">{selectedNote.place || "-"}</div></div>
                       <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">종류</div><div className="mt-2 font-semibold">{selectedNote.type || "-"}</div></div>
+                      <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">가격</div><div className="mt-2 font-semibold">{formatPriceDetails(selectedNote)}</div></div>
                       <div className="rounded-2xl bg-[#f5eee8] p-3 col-span-2"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">저장된 산지</div><div className="mt-2 font-semibold">{getSavedRegionLabel(selectedNote)}</div></div>
                     </div>
                     <div className="rounded-2xl bg-[#f8f2eb] p-4">
