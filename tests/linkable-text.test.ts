@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { getLinkableSegments } from "../app/linkableText.ts";
+import { getLinkableSegments } from "../app/linkableText";
 
 test("detects plain URLs in text and keeps surrounding text intact", () => {
   const segments = getLinkableSegments("여기 링크: https://example.com/notes 입니다.", []);

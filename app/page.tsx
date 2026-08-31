@@ -452,7 +452,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.48";
+const APP_VERSION = "1.50";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -501,6 +501,7 @@ type Note = {
   complexity: number;
   balance: number;
   notes: string;
+  referenceUrl: string;
   createdAt: string;
 };
 
@@ -817,6 +818,7 @@ const getDefaultForm = (category: Category = "whisky"): FormState => ({
   complexity: 3,
   balance: 3,
   notes: "",
+  referenceUrl: "",
 });
 
 const formatDate = (date: string) => {
@@ -1816,6 +1818,16 @@ export default function HomePage() {
                         <textarea value={form.notes} onChange={(e) => updateField("notes", e.target.value)} placeholder="기억하고 싶은 감상, 가격, 페어링, 분위기 등을 남기세요." className="form-label-textarea min-h-[120px]" />
                       </label>
 
+                      <label className="block text-sm font-medium text-[#3f312d]">
+                        <span className="mb-2 block">참고 URL</span>
+                        <input
+                          value={form.referenceUrl}
+                          onChange={(e) => updateField("referenceUrl", e.target.value)}
+                          placeholder="예: https://example.com/"
+                          className="form-label-input"
+                        />
+                      </label>
+
                       <div className="flex justify-end gap-2.5">
                         <button type="button" onClick={() => setForm(getDefaultForm(category))} className="premium-button rounded-full border border-[#f1dccd] bg-[#fffaf7] px-4 py-2 text-[11.5px] font-medium text-[#4d372f] shadow-[0_4px_10px_rgba(136,100,82,0.05)]">초기화</button>
                         <button type="button" disabled={saving} onClick={saveNote} className="premium-button inline-flex items-center gap-1.5 rounded-full bg-[#f6c8b2] px-4 py-2 text-[11.5px] font-medium text-[#402c28] shadow-[0_8px_18px_rgba(216,170,145,0.24)] disabled:cursor-wait disabled:opacity-60"><FontAwesomeIcon icon={saving ? faSpinner : faUpload} className={saving ? "animate-spin" : ""} />{saving ? "저장 중" : "저장"}</button>
@@ -2529,6 +2541,16 @@ export default function HomePage() {
                   />
                 </label>
 
+                <label className="form-label-row">
+                  <span>참고 URL</span>
+                  <input
+                    value={archiveDraft.referenceUrl || ""}
+                    onChange={(e) => setArchiveDraft((prev) => prev ? { ...prev, referenceUrl: e.target.value } : prev)}
+                    placeholder="https://example.com/"
+                    className="form-label-input"
+                  />
+                </label>
+
                 <div className="flex items-center justify-end gap-2 border-t border-[#f0e3d8] pt-4">
                   <button type="button" disabled={saving} onClick={saveArchiveEdit} className="document-button document-button--primary disabled:cursor-wait disabled:opacity-60"><FontAwesomeIcon icon={saving ? faSpinner : faUpload} className={saving ? "animate-spin" : ""} />{saving ? "저장 중" : "저장"}</button>
                   <button type="button" onClick={cancelArchiveEdit} className="document-button document-button--ghost">취소</button>
@@ -2633,6 +2655,9 @@ export default function HomePage() {
                         <p><strong>피니시:</strong> {renderInformationLinks(selectedNote.finish)}</p>
                         <p><strong>산지:</strong> {getSavedRegionLabel(selectedNote)}</p>
                         <p className="whitespace-pre-wrap"><strong>메모:</strong><br />{renderInformationLinks(selectedNote.notes)}</p>
+                        {selectedNote.referenceUrl && (
+                          <p className="break-words [overflow-wrap:anywhere]"><strong>참고 URL:</strong><br />{renderInformationLinks(selectedNote.referenceUrl)}</p>
+                        )}
                       </div>
                     </div>
                     {selectedNote.category === "wine" && (

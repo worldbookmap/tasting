@@ -31,7 +31,8 @@
     "balance": 3,
     "notes": "죽로재 샘플차 긴압 360g 75만 \nhttps://www.chagage.co.kr/m/product.html?branduid=3425530&search=&xcode=001&mcode=004&scode=&special=1&GfDT=bmx4W14%3D",
     "id": "7cebfa77-1c4e-446d-9c17-bd9c9cb5818d",
-    "createdAt": "2026-08-30T06:07:10.953Z"
+    "createdAt": "2026-08-30T06:07:10.953Z",
+    "referenceUrl": ""
   },
   {
     "category": "wine",
@@ -65,7 +66,8 @@
     "balance": 2,
     "notes": "화려한 향 뒤에 뒤가 너무 짧대. ",
     "id": "2bb5e257-9443-4fa6-82ea-9a3bdb4c90ef",
-    "createdAt": "2026-08-28T09:06:23.486Z"
+    "createdAt": "2026-08-28T09:06:23.486Z",
+    "referenceUrl": ""
   },
   {
     "category": "tea",
@@ -99,7 +101,8 @@
     "balance": 3,
     "notes": "구입처: 죽로재\n포랑족이 차잎을 데치고 유념해서 수분기 있는\n상태로 질그릇 항아리에 넣고 땅에 묻어서 3개월 정도 발효",
     "id": "a824aa69-3b6a-42de-8925-f1bc36ff6b34",
-    "createdAt": "2026-08-28T08:19:13.042Z"
+    "createdAt": "2026-08-28T08:19:13.042Z",
+    "referenceUrl": ""
   },
   {
     "category": "tea",
@@ -133,7 +136,8 @@
     "balance": 3,
     "notes": "",
     "id": "966e8c2c-98bd-4016-b256-5f4e295998e1",
-    "createdAt": "2026-08-27T14:33:51.389Z"
+    "createdAt": "2026-08-27T14:33:51.389Z",
+    "referenceUrl": ""
   },
   {
     "category": "tea",
@@ -167,7 +171,8 @@
     "balance": 3,
     "notes": "오리엔티 최고급청향, 진양고 대사 제다, 25세계민족 투차대회은상,우아,구감이 맑고 매끄러움",
     "id": "bc371168-5b7f-44e7-8ab4-c793841155e0",
-    "createdAt": "2026-08-27T05:45:44.322Z"
+    "createdAt": "2026-08-27T05:45:44.322Z",
+    "referenceUrl": ""
   },
   {
     "category": "tea",
@@ -201,7 +206,8 @@
     "balance": 3,
     "notes": "마두암 육계(馬頭岩肉桂)는 중국 복건성 무이산의 명소인 마두암 일원에서 생산되는 대표적인 무이암차(우롱차)입니다. 우란갱 육계와 더불어 육계 품종 중 최고로 손꼽히며, 화려한 꽃향과 알싸한 계피향, 묵직하고 힘 있는 암운(岩韻)이 조화를 이루는 것이 특징입니다",
     "id": "49243da5-0a7b-4b6e-97c1-b19319dff96d",
-    "createdAt": "2026-08-24T14:28:34.024Z"
+    "createdAt": "2026-08-24T14:28:34.024Z",
+    "referenceUrl": ""
   },
   {
     "category": "wine",
@@ -235,7 +241,8 @@
     "balance": 2,
     "notes": "비어있는 맛이라 음식과 같이 먹기 괜찮음, 엄청 아로마틱, 베이비로션",
     "id": "77162ce2-fb9a-451d-9dd5-813e5fc16954",
-    "createdAt": "2026-08-21T12:10:43.544Z"
+    "createdAt": "2026-08-21T12:10:43.544Z",
+    "referenceUrl": ""
   },
   {
     "category": "wine",
@@ -269,7 +276,8 @@
     "balance": 3,
     "notes": "단새우랑 먹으면 비리다, 후미가 별로 없다.",
     "id": "af8feabd-4b03-49ff-b642-eaadfd4fbbaa",
-    "createdAt": "2026-08-21T10:50:48.328Z"
+    "createdAt": "2026-08-21T10:50:48.328Z",
+    "referenceUrl": ""
   },
   {
     "category": "tea",
@@ -303,7 +311,8 @@
     "balance": 3,
     "notes": "특급압시 황편+특급황지 황편(위에서 치고 아래새어 받치고) 황편이라 가격이 너무 좋고 부드러운데 대신 레이어가 조금 얕고 깊이가 살짝 부족한느낌",
     "id": "a92c279f-7d54-467b-869a-ac096f0e3e07",
-    "createdAt": "2026-08-21T10:23:39.459Z"
+    "createdAt": "2026-08-21T10:23:39.459Z",
+    "referenceUrl": ""
   },
   {
     "category": "tea",
@@ -337,7 +346,8 @@
     "balance": 3,
     "notes": "진욱: 고수차하면 생각나는 느낌을 갖으면서 부드럽고 회감과 탄닌감이 너무 좋다",
     "id": "b55a268d-dba1-40e3-9af6-1a839e5cb5d5",
-    "createdAt": "2026-08-19T12:49:31.544Z"
+    "createdAt": "2026-08-19T12:49:31.544Z",
+    "referenceUrl": ""
   },
   {
     "category": "tea",
@@ -371,7 +381,8 @@
     "id": "0a265a2c-394a-4a19-9d0d-5f81532d2e99",
     "createdAt": "2026-08-17T09:09:59.173Z",
     "price": "35000",
-    "teaAmount": "50"
+    "teaAmount": "50",
+    "referenceUrl": ""
   },
   {
     "category": "tea",
@@ -404,7 +415,8 @@
     "notes": "취명헌 구매, 가격 350,000",
     "id": "6ae0561e-82ad-4851-8464-cdced9c4d8dc",
     "createdAt": "2026-08-17T06:38:18.726Z",
-    "price": "350000"
+    "price": "350000",
+    "referenceUrl": ""
   },
   {
     "category": "tea",
@@ -436,7 +448,8 @@
     "balance": 3,
     "notes": "",
     "id": "647dcd57-72a1-4f87-ac20-f609bcd99700",
-    "createdAt": "2026-08-17T05:12:40.138Z"
+    "createdAt": "2026-08-17T05:12:40.138Z",
+    "referenceUrl": ""
   },
   {
     "category": "tea",
@@ -468,7 +481,8 @@
     "balance": 3,
     "notes": "",
     "id": "04d4a49b-993e-474a-b2e1-101557e44742",
-    "createdAt": "2026-08-17T05:08:21.345Z"
+    "createdAt": "2026-08-17T05:08:21.345Z",
+    "referenceUrl": ""
   },
   {
     "category": "tea",
@@ -500,7 +514,8 @@
     "balance": 3,
     "notes": "하동 차축제에서 사온 무애산방 전차형태의 백차, 풀내음이 아직 남아있고 약간의 아미노산, 기계로 긴압한 게 아니라서 혜괴가 쉽고 아직은 잎이 푸릇하다. 좀 익어가는 모 양새를 두고 보고싶음. 여름에 냉침해서 마셔도 좋을듯.",
     "id": "a7072672-0f7f-4ffe-beea-99fdf018e846",
-    "createdAt": "2026-08-17T03:02:59.956Z"
+    "createdAt": "2026-08-17T03:02:59.956Z",
+    "referenceUrl": ""
   },
   {
     "category": "wine",
@@ -532,7 +547,8 @@
     "balance": 2,
     "notes": "",
     "id": "97c134ec-58a1-457f-bd23-cfdde924b974",
-    "createdAt": "2026-08-16T09:35:05.118Z"
+    "createdAt": "2026-08-16T09:35:05.118Z",
+    "referenceUrl": ""
   },
   {
     "category": "tea",
@@ -564,7 +580,8 @@
     "balance": 3,
     "notes": "윈난 지역 린창 지역 석귀촌 생산, 린창의 보이차라고 불림\n향적당 구매\n",
     "id": "88158d95-4a51-4cb8-b58b-3d6788561f71",
-    "createdAt": "2026-08-15T12:36:40.754Z"
+    "createdAt": "2026-08-15T12:36:40.754Z",
+    "referenceUrl": ""
   },
   {
     "id": "cced1226-a7c2-4721-97a3-fb5bf58fec07",
@@ -595,7 +612,8 @@
     "complexity": 4,
     "balance": 0,
     "notes": "지원, 만철과 함께",
-    "createdAt": "2026-08-10T10:55:05.332Z"
+    "createdAt": "2026-08-10T10:55:05.332Z",
+    "referenceUrl": ""
   },
   {
     "id": "db7e6979-fc1e-4d3f-9046-fff1aa4610e7",
@@ -626,7 +644,8 @@
     "complexity": 2,
     "balance": 2,
     "notes": "지역: 맥라렌",
-    "createdAt": "2026-08-10T11:01:33.304Z"
+    "createdAt": "2026-08-10T11:01:33.304Z",
+    "referenceUrl": ""
   },
   {
     "id": "9c76cee6-fddc-4e23-88e5-dbb979669446",
@@ -657,7 +676,8 @@
     "complexity": 0,
     "balance": 0,
     "notes": "",
-    "createdAt": "2026-08-09T08:47:10.406Z"
+    "createdAt": "2026-08-09T08:47:10.406Z",
+    "referenceUrl": ""
   },
   {
     "id": "ad3452e9-36fa-491e-833b-ada507a09a27",
@@ -688,7 +708,8 @@
     "complexity": 3,
     "balance": 4,
     "notes": "음식과의 페어링이 좋고 탄산감은 좋으나 잔 버블은 덜함 빈티지2012에 비해 기운이 짱짱하다. 셰비체 조합 굿.",
-    "createdAt": "2026-08-08T08:43:34.208Z"
+    "createdAt": "2026-08-08T08:43:34.208Z",
+    "referenceUrl": ""
   },
   {
     "id": "eb6e9f38-5529-4063-b353-3d896eeae738",
@@ -719,7 +740,8 @@
     "complexity": 4,
     "balance": 2,
     "notes": "슈트입는 숏컷의 여자 느낌\n소금뿌린 생치즈랑 잘 어울린다, 원래 자기향인 것 마냥",
-    "createdAt": "2026-08-08T09:22:36.212Z"
+    "createdAt": "2026-08-08T09:22:36.212Z",
+    "referenceUrl": ""
   },
   {
     "id": "d9019b7c-9f08-4c51-860e-7952083fc079",
@@ -755,7 +777,8 @@
     "complexity": 0,
     "balance": 0,
     "notes": "",
-    "createdAt": "2026-08-08T13:01:21.457Z"
+    "createdAt": "2026-08-08T13:01:21.457Z",
+    "referenceUrl": ""
   },
   {
     "id": "cefd63a1-49c0-487e-adbc-b7a1ccced606",
@@ -791,7 +814,8 @@
     "complexity": 0,
     "balance": 0,
     "notes": "",
-    "createdAt": "2026-08-08T13:18:36.696Z"
+    "createdAt": "2026-08-08T13:18:36.696Z",
+    "referenceUrl": ""
   },
   {
     "id": "6a060f0b-7498-4580-b84f-4cd267515585",
@@ -822,7 +846,8 @@
     "complexity": 0,
     "balance": 0,
     "notes": "",
-    "createdAt": "2026-08-07T06:57:39.841Z"
+    "createdAt": "2026-08-07T06:57:39.841Z",
+    "referenceUrl": ""
   },
   {
     "id": "952077f7-1d3d-4bc4-bdf8-7e4c7180280c",
@@ -853,7 +878,8 @@
     "complexity": 0,
     "balance": 0,
     "notes": "무이산 > 동목촌\n야생차는 우아한 맛은 떨어지나 약간의 시원함과 매움이 느껴짐",
-    "createdAt": "2026-08-07T07:03:51.369Z"
+    "createdAt": "2026-08-07T07:03:51.369Z",
+    "referenceUrl": ""
   },
   {
     "id": "da34bcf6-0996-40e7-a604-07be574220a0",
@@ -889,7 +915,8 @@
     "complexity": 0,
     "balance": 0,
     "notes": "맛있다.",
-    "createdAt": "2026-08-06T12:48:06.819Z"
+    "createdAt": "2026-08-06T12:48:06.819Z",
+    "referenceUrl": ""
   },
   {
     "id": "b0ced081-264b-464f-9cf8-ca420a3d2bb4",
@@ -920,7 +947,8 @@
     "complexity": 0,
     "balance": 0,
     "notes": "직관적이지 않고 섬세하고 우아하고 은근함\n\n동목촌: 지역이름, 마속: 세부 마을 이름\n명전: 절기이름",
-    "createdAt": "2026-08-05T12:08:28.008Z"
+    "createdAt": "2026-08-05T12:08:28.008Z",
+    "referenceUrl": ""
   },
   {
     "id": "9ffaad68-629f-422d-8ccb-bc16471f8f9c",
@@ -951,7 +979,8 @@
     "complexity": 0,
     "balance": 0,
     "notes": "무연 정산소종이라서 훈연향 없음. 맛이 고급에 비해 살짝 단조로움. 육각형이라기엔 조금 모자람. 무연 정산소종 먹을거면 그냥 다른 홍차가 낫다는 생각. 하지만 가성비는 좋은편. 25년 생산",
-    "createdAt": "2026-08-05T12:33:44.235Z"
+    "createdAt": "2026-08-05T12:33:44.235Z",
+    "referenceUrl": ""
   },
   {
     "id": "c4419e63-f6e9-459d-8d31-83eb518e2bd2",
@@ -982,7 +1011,8 @@
     "complexity": 0,
     "balance": 0,
     "notes": "휘게에서 사온 육보 다 마셔간다\n물을 삼다수와 백산수 둘 다 마셔보니 맛 차이 느껴진다. 삼다수가 좀 더 부드러움",
-    "createdAt": "2026-08-04T12:00:00.000Z"
+    "createdAt": "2026-08-04T12:00:00.000Z",
+    "referenceUrl": ""
   },
   {
     "id": "273aebe7-91db-45e7-8e7d-d7d32a3ba3d5",
@@ -1013,7 +1043,8 @@
     "complexity": 0,
     "balance": 0,
     "notes": "엽저가 매우 튼실하고 깨끗, 약간 기름질 수 있지만 풍성한 향\n- 진욱: 호향이 뭔대 도대체!!!!!?",
-    "createdAt": "2026-08-04T12:00:00.000Z"
+    "createdAt": "2026-08-04T12:00:00.000Z",
+    "referenceUrl": ""
   },
   {
     "id": "fe1380cc-6853-4222-8e74-190186700128",
@@ -1044,7 +1075,8 @@
     "complexity": 0,
     "balance": 0,
     "notes": "페어몬트 호캉스\n페어링: 쓰리페퍼 치킨, 오렌지 치킨,",
-    "createdAt": "2026-08-03T12:00:00.000Z"
+    "createdAt": "2026-08-03T12:00:00.000Z",
+    "referenceUrl": ""
   },
   {
     "id": "5ed10b6e-ca7b-4ce2-8144-a3ad4f760a73",
@@ -1080,7 +1112,8 @@
     "complexity": 0,
     "balance": 0,
     "notes": "",
-    "createdAt": "2026-08-03T12:00:00.000Z"
+    "createdAt": "2026-08-03T12:00:00.000Z",
+    "referenceUrl": ""
   },
   {
     "id": "b09f8ca7-612a-4577-a8da-07a91db95912",
@@ -1111,6 +1144,7 @@
     "complexity": 0,
     "balance": 0,
     "notes": "페어링: 감자튀김 시오콘부 버터 볶음, 아보카도, 빵\n지선이 회복 후 와인 마시고 싶다고 찡찡",
-    "createdAt": "2026-08-02T12:00:00.000Z"
+    "createdAt": "2026-08-02T12:00:00.000Z",
+    "referenceUrl": ""
   }
 ]
