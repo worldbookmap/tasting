@@ -1144,7 +1144,7 @@ export default function HomePage() {
     return getLinkableSegments(text, informationTitles).map((segment, index) => {
       if (segment.type === "link") {
         return (
-          <a key={`${segment.href}-${index}`} href={segment.href} target="_blank" rel="noopener noreferrer" className="inline max-w-full break-all font-medium text-[#a45f4b] underline decoration-[#dba28e] underline-offset-2 hover:text-[#784238] [overflow-wrap:anywhere]">
+          <a key={`${segment.href}-${index}`} href={segment.href} target="_blank" rel="noopener noreferrer" className="inline-block max-w-full break-all align-middle font-medium text-[#a45f4b] underline decoration-[#dba28e] underline-offset-2 hover:text-[#784238] [overflow-wrap:anywhere]">
             {segment.value}
           </a>
         );
@@ -2637,8 +2637,8 @@ export default function HomePage() {
                       </div>
                     )}
                   </div>
-                  <div className="user-serif space-y-4 text-sm text-[#3c2d26]">
-                    <div className="grid grid-cols-2 gap-3">
+                  <div className="user-serif min-w-0 space-y-4 text-sm text-[#3c2d26]">
+                    <div className="grid min-w-0 grid-cols-2 gap-3">
                       <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">이름</div><div className="mt-2 font-semibold">{selectedNote.name || "-"}</div></div>
                       <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">마신날</div><div className="mt-2 font-semibold">{formatDate(selectedNote.date)}</div></div>
                       <div className="rounded-2xl bg-[#f5eee8] p-3"><div className="text-[10px] uppercase tracking-[0.2em] text-[#7a665f]">마신 사람</div><div className="mt-2 font-semibold">{selectedNote.people || "-"}</div></div>
@@ -2649,14 +2649,14 @@ export default function HomePage() {
                     </div>
                     <div className="rounded-2xl bg-[#f8f2eb] p-4">
                       <div className="mb-2 font-semibold text-[#2d2320]">기본 정보</div>
-                      <div className="space-y-2 text-[#5a4a43]">
-                        <p><strong>향:</strong> {renderInformationLinks(selectedNote.aroma)}</p>
-                        <p><strong>맛:</strong> {renderInformationLinks(selectedNote.taste)}</p>
-                        <p><strong>피니시:</strong> {renderInformationLinks(selectedNote.finish)}</p>
-                        <p><strong>산지:</strong> {getSavedRegionLabel(selectedNote)}</p>
-                        <p className="whitespace-pre-wrap"><strong>메모:</strong><br />{renderInformationLinks(selectedNote.notes)}</p>
+                      <div className="min-w-0 space-y-2 text-[#5a4a43]">
+                        <p className="min-w-0 break-words [overflow-wrap:anywhere]"><strong>향:</strong> {renderInformationLinks(selectedNote.aroma)}</p>
+                        <p className="min-w-0 break-words [overflow-wrap:anywhere]"><strong>맛:</strong> {renderInformationLinks(selectedNote.taste)}</p>
+                        <p className="min-w-0 break-words [overflow-wrap:anywhere]"><strong>피니시:</strong> {renderInformationLinks(selectedNote.finish)}</p>
+                        <p className="min-w-0 break-words [overflow-wrap:anywhere]"><strong>산지:</strong> {getSavedRegionLabel(selectedNote)}</p>
+                        <p className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]"><strong>메모:</strong><br />{renderInformationLinks(selectedNote.notes)}</p>
                         {selectedNote.referenceUrl && (
-                          <p className="break-words [overflow-wrap:anywhere]"><strong>참고 URL:</strong><br />{renderInformationLinks(selectedNote.referenceUrl)}</p>
+                          <p className="min-w-0 break-words [overflow-wrap:anywhere]"><strong>참고 URL:</strong><br />{renderInformationLinks(selectedNote.referenceUrl)}</p>
                         )}
                       </div>
                     </div>
