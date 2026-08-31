@@ -2124,7 +2124,7 @@ export default function HomePage() {
           setArchiveEditMode(false);
           setArchiveDraft(null);
         }}>
-          <div className="my-2 w-full max-w-5xl overflow-visible rounded-[24px] border border-[#ebddd0] bg-[#fffaf6] p-3 pb-24 shadow-[0_26px_60px_rgba(72,52,42,0.16)] sm:my-0 sm:max-h-[90dvh] sm:overflow-y-auto sm:rounded-[30px] sm:p-5 sm:pb-5 sm:overscroll-contain sm:[-webkit-overflow-scrolling:touch]" onClick={(e) => e.stopPropagation()}>
+          <div className="my-2 w-full max-w-[calc(100vw-0.75rem)] overflow-visible rounded-[24px] border border-[#ebddd0] bg-[#fffaf6] p-3 pb-24 shadow-[0_26px_60px_rgba(72,52,42,0.16)] sm:my-0 sm:max-w-5xl sm:max-h-[90dvh] sm:overflow-y-auto sm:rounded-[30px] sm:p-5 sm:pb-5 sm:overscroll-contain sm:[-webkit-overflow-scrolling:touch]" onClick={(e) => e.stopPropagation()}>
             {Object.values(detailPanels).some(Boolean) && (
               <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[#1a130f]/55 p-4 backdrop-blur-[2px]" onClick={closeDetailPanels}>
                 <div className="w-full max-w-xl overflow-hidden rounded-[28px] border border-[#ebddd0] bg-[#fffaf6] shadow-[0_26px_60px_rgba(72,52,42,0.16)]" onClick={(e) => e.stopPropagation()}>
@@ -2732,18 +2732,18 @@ export default function HomePage() {
 
       {selectedInformation && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#1a130f]/55 p-4 backdrop-blur-[2px]" onClick={() => setSelectedInformation(null)}>
-          <div className="document-modal-shell w-full max-w-xl p-4 sm:p-5" onClick={(event) => event.stopPropagation()}>
-            <div className="document-modal-header">
-              <div><div className="text-[9px] tracking-[0.22em] text-[#7e665d]">INFORMATION</div><h2 className="mt-1 text-xl font-semibold text-[#2b201d]">{selectedInformation.title}</h2></div>
+          <div className="document-modal-shell w-full max-w-[calc(100vw-1.5rem)] overflow-hidden p-4 sm:max-w-xl sm:p-5" onClick={(event) => event.stopPropagation()}>
+            <div className="document-modal-header min-w-0">
+              <div className="min-w-0"><div className="text-[9px] tracking-[0.22em] text-[#7e665d]">INFORMATION</div><h2 className="mt-1 truncate text-xl font-semibold text-[#2b201d]">{selectedInformation.title}</h2></div>
               <div className="flex items-center gap-1.5">
                 <button type="button" onClick={() => editInformation(selectedInformation)} className="document-icon-button" aria-label="정보 수정" title="수정"><FontAwesomeIcon icon={faPen} /></button>
                 <button type="button" onClick={() => deleteInformation(selectedInformation)} className="document-icon-button document-icon-button--danger" aria-label="정보 삭제" title="삭제"><FontAwesomeIcon icon={faTrash} /></button>
                 <button type="button" onClick={() => setSelectedInformation(null)} className="document-button document-button--ghost h-8 min-h-0 px-2.5 py-1 text-[10px]">닫기</button>
               </div>
             </div>
-            <div className="user-serif mt-4 space-y-4 text-sm leading-7 text-[#493a34]">
-              <div><div className="document-section-label">내용</div><p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{renderInformationLinks(selectedInformation.content || "-")}</p></div>
-              {selectedInformation.details && <div className="border-t border-[#eadbd0] pt-4"><div className="document-section-label">세부 내용</div><p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{renderInformationLinks(selectedInformation.details)}</p></div>}
+            <div className="user-serif mt-4 min-w-0 space-y-4 text-sm leading-7 text-[#493a34]">
+              <div className="min-w-0"><div className="document-section-label">내용</div><p className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{renderInformationLinks(selectedInformation.content || "-")}</p></div>
+              {selectedInformation.details && <div className="min-w-0 border-t border-[#eadbd0] pt-4"><div className="document-section-label">세부 내용</div><p className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{renderInformationLinks(selectedInformation.details)}</p></div>}
             </div>
           </div>
         </div>
