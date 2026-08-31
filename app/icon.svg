@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Tasting notes icon">
+  <defs>
+    <linearGradient id="glassFill" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#f3d8b5" />
+      <stop offset="100%" stop-color="#d08d66" />
+    </linearGradient>
+    <linearGradient id="stem" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#6f5147" />
+      <stop offset="100%" stop-color="#3c2d28" />
+    </linearGradient>
+  </defs>
+
+  <rect width="64" height="64" rx="18" fill="#f7efe7" />
+  <circle cx="32" cy="32" r="22" fill="#fffaf4" stroke="#d9c3ae" stroke-width="2" />
+
+  <path d="M25 18h14v11c0 6-3 10-7 13-4-3-7-7-7-13V18Z" fill="url(#glassFill)" stroke="#6e4d43" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M25 18h14" stroke="#6e4d43" stroke-width="2" stroke-linecap="round"/>
+  <path d="M29 31h6v11c0 3-1.5 5.5-3 7.5-1.5-2-3-4.5-3-7.5V31Z" fill="url(#stem)" opacity="0.9"/>
+  <path d="M26 42h12" stroke="#6e4d43" stroke-width="2" stroke-linecap="round"/>
+  <path d="M29 12c-2 2-3 4-3 7" fill="none" stroke="#8ab38f" stroke-width="2" stroke-linecap="round"/>
+  <path d="M35 12c2 2 3 4 3 7" fill="none" stroke="#8ab38f" stroke-width="2" stroke-linecap="round"/>
+  <path d="M31 9c1 2 1.5 3.5 1.5 5.5S32 17 31 19" fill="none" stroke="#8ab38f" stroke-width="2" stroke-linecap="round"/>
+
+  <path d="M45 24c4 0 7 3 7 7 0 5-4 9-9 9-4 0-7-3-7-7 0-5 4-9 9-9Z" fill="#d7a778" opacity="0.55"/>
+  <path d="M46 24c1 3 1 5 0 8" fill="none" stroke="#9a6c52" stroke-width="2" stroke-linecap="round"/>
+  <path d="M42 28c3 2 5 4 6 7" fill="none" stroke="#9a6c52" stroke-width="2" stroke-linecap="round"/>
+</svg>
