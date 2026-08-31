@@ -27,6 +27,7 @@ import {
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import distilleries from "@/assets/distillery.json";
+import { getLinkableSegments } from "@/app/linkableText";
 
 type RegionBlock = {
   id: string;
@@ -451,7 +452,7 @@ function RegionBlockMap({
 }
 
 const categoryLabels = { whisky: "위스키", wine: "와인", tea: "차" } as const;
-const APP_VERSION = "1.47";
+const APP_VERSION = "1.48";
 type Category = keyof typeof categoryLabels;
 type TagField = "aroma" | "taste" | "finish";
 type CustomTags = Record<Category, Record<TagField, string[]>>;
@@ -1136,15 +1137,29 @@ export default function HomePage() {
   );
 
   const renderInformationLinks = (text: string) => {
-    if (!text || !informationTitles.length) return text || "-";
-    const pattern = new RegExp(`(${informationTitles.map((title) => title.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")).join("|")})`, "g");
-    return text.split(pattern).map((part, index) => {
-      const matched = information.find((item) => item.title === part);
-      return matched ? (
-        <button key={`${matched.id}-${index}`} type="button" onClick={() => setSelectedInformation(matched)} className="font-semibold text-[#a45f4b] underline decoration-[#dba28e] underline-offset-2 hover:text-[#784238]">
-          {part}
-        </button>
-      ) : <span key={`${part}-${index}`}>{part}</span>;
+    if (!text) return "-";
+
+    return getLinkableSegments(text, informationTitles).map((segment, index) => {
+      if (segment.type === "link") {
+        return (
+          <a key={`${segment.href}-${index}`} href={segment.href} target="_blank" rel="noopener noreferrer" className="font-medium text-[#a45f4b] underline decoration-[#dba28e] underline-offset-2 hover:text-[#784238] break-all">
+            {segment.value}
+          </a>
+        );
+      }
+
+      if (segment.type === "info") {
+        const matched = information.find((item) => item.title.toLowerCase() === segment.value.toLowerCase());
+        if (!matched) return <span key={`${segment.value}-${index}`}>{segment.value}</span>;
+
+        return (
+          <button key={`${matched.id}-${index}`} type="button" onClick={() => setSelectedInformation(matched)} className="font-semibold text-[#a45f4b] underline decoration-[#dba28e] underline-offset-2 hover:text-[#784238]">
+            {segment.value}
+          </button>
+        );
+      }
+
+      return <span key={`${segment.value}-${index}`}>{segment.value}</span>;
     });
   };
 
