@@ -1142,7 +1142,7 @@ export default function HomePage() {
     return getLinkableSegments(text, informationTitles).map((segment, index) => {
       if (segment.type === "link") {
         return (
-          <a key={`${segment.href}-${index}`} href={segment.href} target="_blank" rel="noopener noreferrer" className="font-medium text-[#a45f4b] underline decoration-[#dba28e] underline-offset-2 hover:text-[#784238] break-all">
+          <a key={`${segment.href}-${index}`} href={segment.href} target="_blank" rel="noopener noreferrer" className="inline max-w-full break-all font-medium text-[#a45f4b] underline decoration-[#dba28e] underline-offset-2 hover:text-[#784238] [overflow-wrap:anywhere]">
             {segment.value}
           </a>
         );
@@ -1150,7 +1150,7 @@ export default function HomePage() {
 
       if (segment.type === "info") {
         const matched = information.find((item) => item.title.toLowerCase() === segment.value.toLowerCase());
-        if (!matched) return <span key={`${segment.value}-${index}`}>{segment.value}</span>;
+        if (!matched) return <span key={`${segment.value}-${index}`} className="[overflow-wrap:anywhere]">{segment.value}</span>;
 
         return (
           <button key={`${matched.id}-${index}`} type="button" onClick={() => setSelectedInformation(matched)} className="font-semibold text-[#a45f4b] underline decoration-[#dba28e] underline-offset-2 hover:text-[#784238]">
@@ -1159,7 +1159,7 @@ export default function HomePage() {
         );
       }
 
-      return <span key={`${segment.value}-${index}`}>{segment.value}</span>;
+      return <span key={`${segment.value}-${index}`} className="[overflow-wrap:anywhere]">{segment.value}</span>;
     });
   };
 
@@ -2717,8 +2717,8 @@ export default function HomePage() {
               </div>
             </div>
             <div className="user-serif mt-4 space-y-4 text-sm leading-7 text-[#493a34]">
-              <div><div className="document-section-label">내용</div><p className="whitespace-pre-wrap">{selectedInformation.content || "-"}</p></div>
-              {selectedInformation.details && <div className="border-t border-[#eadbd0] pt-4"><div className="document-section-label">세부 내용</div><p className="whitespace-pre-wrap">{selectedInformation.details}</p></div>}
+              <div><div className="document-section-label">내용</div><p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{renderInformationLinks(selectedInformation.content || "-")}</p></div>
+              {selectedInformation.details && <div className="border-t border-[#eadbd0] pt-4"><div className="document-section-label">세부 내용</div><p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{renderInformationLinks(selectedInformation.details)}</p></div>}
             </div>
           </div>
         </div>
