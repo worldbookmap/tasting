@@ -2,7 +2,7 @@
   {
     "category": "tea",
     "date": "2026-10-26",
-    "place": "",
+    "place": "둥지",
     "people": "진욱, 지선",
     "peopleCustom": "",
     "type": "흑차",
@@ -19,7 +19,7 @@
     "teaVariety": "보이차",
     "teaLeafPhoto": "",
     "teaLeafUrl": "https://raw.githubusercontent.com/worldbookmap/tasting/main/data/images/7d47342e-bce5-4b77-b1bc-ae31c01f86bf/teaLeafPhoto-d91f054a-459e-4186-a91a-a8c70930aa20.jpg",
-    "aroma": "풀잎, 약향, 진향",
+    "aroma": "풀잎, 약향, 진향, 연기냄새",
     "taste": "버섯물, 쌉쌀",
     "finish": "시원함, 알싸함, 회감, 단맛",
     "body": 3,
